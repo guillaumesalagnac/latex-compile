@@ -1,0 +1,344 @@
+#!/usr/bin/env python
+
+import subprocess
+import os, re, sys, time, string
+
+
+re_file_line_error= re.compile(r'.*:[0-9]*:.*')
+
+class LatexCompileError(Exception): pass
+class BibtexError(Exception): pass
+
+def latex_first_run():
+
+    oldaux_init()
+        
+    try:
+        print "compiling %s..." % (jobname+'.tex')
+        vomi=subprocess.check_output(["pdflatex",
+                                      "-halt-on-error",
+                                      "-file-line-error",
+                                      "-synctex=1",
+                                      "-shell-escape",
+                                      "-interaction=nonstopmode",
+                                      jobname])
+    except subprocess.CalledProcessError as e:
+        vomi=e.output
+    
+        printedsomething=False
+        morelines=0
+        acc=""
+        for line in vomi.splitlines():
+
+             # TeX breaks outputs at 79 characters. here we unbreak them
+            if len(line)==79:
+                acc+=line
+                continue
+            elif acc:
+                line=acc+line
+                acc=""
+
+            # Some error messages span several lines. here we print those lines
+            if morelines:
+                print line, # don't print a \n
+                morelines -= 1
+                if morelines:
+                    continue
+                else:
+                    print "" # now print a \n
+    
+            # Here we do the actual parsing to detect error messages
+            if "Undefined control sequence" in line:
+                print line,
+                morelines=1
+                printedsomething=True
+            elif "LaTeX Error:" in line:
+                print line
+                printedsomething=True
+            elif re_file_line_error.search(line):
+                print line
+                printedsomething=True
+                # see test-cases #16 for colon and #14 for comma
+                if line[-1] in ",:": 
+                    morelines=1
+                
+    
+        if not printedsomething:
+            print "could not understand error ; dumping raw logfile"
+            # try to be useful even if we could not understand the log
+            print vomi
+            # no need to proceed if compilation produces errors
+        raise LatexCompileError
+
+
+_oldaux="" # oldaux_init() is call
+def rerun_needed():
+
+    # GS-30/01/2014-18:46  "New  approach":  Instead  of  looking  for
+    # explicit clues, we now stubbornly  recompile until our .aux file
+    # reaches a  fixpoint. This actually  works pretty well  (e.g. for
+    # test-cases #19 and #20), even  though using a global variable is
+    # inelegant.
+    global _oldaux
+    newaux=open( jobname+".aux" ).read()
+    if newaux != _oldaux:
+        # print ".aux file changed -> rerun", len(_oldaux), len(newaux)
+        _oldaux=newaux
+        return True
+        
+    # GS-30/01/2014-18:47 This  is the "old approach".  I'm leaving it
+    # here just in case (and after all, it doesn't hurt anyone)
+    log=open( jobname+".log" ).read()
+    if "Rerun to get cross-references right." in log:
+        print "Explicit rerun request"
+        return True
+    if "No file "+jobname+".toc" in log:
+        print "No .toc file -> rerun"
+        return True
+
+    # Note that we always have to return something :-)
+    return False
+
+# called before each pdflatex run to let us save a copy of the .aux file
+def oldaux_init():
+    global _oldaux
+    if _oldaux != "": return # only init once.
+
+    if os.path.isfile(jobname+".aux"):
+        _oldaux=open( jobname+".aux" ).read()
+        
+def bibtex_needed():
+    log=open( jobname+".log" ).read()
+    return ( ("No file "+jobname+".bbl" in log) # test-cases #03, #15...
+             or
+             ("LaTeX Warning: Citation " in log) )
+    
+def run_bibtex():
+        print "running BibTeX on %s..." % jobname
+    
+        # design  note: I  decide to  abort  the build  process on  bibtex
+        # errors, but to proceed on warnings
+        #
+        # and anyway, we remain silent if no errors nor warnings
+    
+        bibtex_output=None
+        try:
+            bibtex_output=subprocess.check_output(["bibtex",jobname])
+        except subprocess.CalledProcessError as e:
+            print "" # an empty line
+            print e.output,
+            # Nirvana: pretty-print bibtex errors
+            raise BibtexError
+        
+        if "Warning--" in bibtex_output:
+            # just repeat what bibtex said.
+            print bibtex_output,
+            # Nirvana: pretty-print bibtex warnings ?
+
+def latex_second_run():
+    print "recompiling %s..." % (jobname+".tex")
+    
+    oldaux_init()
+
+    # Note: compilation errors would have been caught on first run (so
+    # we don't need the try/except clause here)
+    subprocess.check_output(["pdflatex",
+                             "-file-line-error",
+                             "-shell-escape",
+                             "-synctex=1",
+                             "-interaction=nonstopmode",
+                             "-halt-on-error",
+                             jobname])
+
+
+# Page tracking logic.
+# GS-29/04/2014-16:07. removing the closing bracket. see test-cases.
+re_page = re.compile("\[(?P<num>[0-9]+)[^/0-9]")
+def update_page (line, before):
+    """Parse the given log line and return the number of the page that is
+    being built after that line,  assuming the current page before the
+    line was `before'.
+    """
+    ms = re_page.findall(line)
+    if ms == []:
+        return before
+    # print ms
+    return max(before, int(ms[-1]) + 1)
+
+# File tracking logic
+opened_files=[]
+def update_currentfile (line):
+    """Parse the given logline and keep track of the file being processed"""
+
+    
+    # if line.count('(' ) + line.count(')'):
+    #     print '##%d#%d##' % (line.count('('),
+    #                          line.count(')') ) , line
+    #     print opened_files
+
+    # we  walk the  logline one  character  at a  time, searching  for
+    # parentheses,  and tracking  nesting level.  Some of  the opening
+    # parentheses are  followed by a pathname,  so we push these  on a
+    # pathname stack.
+    while line:
+        if line[0] is ')':
+            opened_files.pop()
+            # print opened_files
+
+        if line[0] is '(':
+            suffix=line[1:]
+
+            # if suffix does not even look like a pathname, let's not bother walking it
+            if suffix[0] not in './':
+                suffix=""
+        
+            # what we want is the longest prefix of suffix that _is_ a pathname
+            while suffix and not os.path.isfile(suffix):
+                suffix=suffix[:-1]
+
+            opened_files.append(suffix)
+            # print opened_files
+
+        line = line[1:]
+
+def current_file():
+    for i in range(-1, -len(opened_files)-1,-1):
+        if opened_files[i]:
+            return opened_files[i]
+    raise AssertionError # at worst, we should return the jobname
+
+# Once we started printing filenames, we print them all
+print_all_filenames=False
+def print_currentfile_maybe():
+    global print_all_filenames
+    if print_all_filenames or (current_file() != "./"+jobname+".tex"):
+        print "in file",current_file()
+        print_all_filenames = True
+    
+
+re_warning = re.compile(
+"(LaTeX|Package)( (?P<pkg>.*))? Warning: (?P<text>.*)$")
+
+def print_warnings():
+    log=open( jobname+".log" ).read()
+
+    pagenum=1
+    prefix=None
+    acc=""
+    for line in log.splitlines():
+
+        # TeX breaks outputs at 79 characters. here we unbreak them
+        if len(line)==79:
+            acc+=line
+            continue
+        elif acc:
+            line=acc+line
+            acc=""
+            
+        pagenum=update_page(line,pagenum)
+        update_currentfile(line) 
+
+        # Long warning logic, stolen from rubber
+        if prefix is not None:
+            if line[:len(prefix)] == prefix:
+                text.append(string.strip(line[len(prefix):]))
+            else:
+                print_currentfile_maybe()
+                print " ".join(text), "(page %d)" % pagenum
+                prefix = None
+        
+        if ( "Overfull " in line or
+             "Underfull " in line ):
+            print_currentfile_maybe()
+            print line, "(page %d)" % pagenum
+
+        if "Warning: " in line:
+            m = re_warning.match(line)
+            if m:
+                pkg= m.groupdict()["pkg"] 
+                if pkg is None:
+                    prefix = ""
+                else:
+                    prefix = ("(%s)" % pkg)
+                prefix = prefix.ljust(m.start("text"))
+                text = [line]
+
+# note: each of the functions we call here will raise an exception if
+# something goes wrong -> no need for explicit error-checking
+def latex_full_build():
+
+    latex_first_run() # if errors, prints them before raising exception
+    
+    if bibtex_needed():
+        run_bibtex()
+        latex_second_run()
+    
+    while rerun_needed():
+        latex_second_run()
+    
+    print_warnings()
+
+# print usage and optionnaly call sys.exit
+def usage(exitcode):
+    progname=os.path.basename(sys.argv[0])
+    print "Usage: %s latexfile.tex " % progname
+    if exitcode:
+        sys.exit(exitcode)
+
+jobname=None
+if __name__ == '__main__':
+
+    # option parsing
+    loop_mode = sys.argv[1] in ['-l','--loop']
+    if loop_mode: del sys.argv[1]
+
+    # argument parsing
+    jobname=sys.argv[1]
+    if not os.path.exists(jobname+'.tex'): jobname=jobname.replace('.tex','')
+    if not os.path.exists(jobname+'.tex'): 
+        progname=os.path.basename(sys.argv[0])
+        print progname+": cannot find file '"+sys.argv[1]+"'"
+        sys.exit(1)
+
+    # run-once-only mode
+    if not loop_mode:
+        try:
+            latex_full_build()
+        except (LatexCompileError,BibtexError):
+            sys.exit(1)
+        else:
+            sys.exit(0)
+
+    # run-forever mode
+    try:
+        latex_full_build()
+    except (LatexCompileError,BibtexError):
+        pass
+    
+    while True:
+
+        time.sleep(1)
+
+        pdfname=jobname+".pdf"
+        pdftime=os.path.getmtime(pdfname)
+
+        must_recompile=False
+        for (dirpath,subdirs,filenames) in os.walk("."):
+            for filename in filenames:
+                filepath=dirpath+"/"+filename
+                if not os.path.isfile(filepath): continue 
+                if os.path.getmtime(filepath) > pdftime:
+                    # print "recent file:", filepath
+                    must_recompile=True
+                    
+        if not must_recompile:
+            continue
+
+        try:
+            latex_full_build()
+        except (LatexCompileError,BibtexError):
+            # print 70*'='
+            time.sleep(1)
+        except KeyboardInterrupt:
+            print
+            sys.exit(0)
