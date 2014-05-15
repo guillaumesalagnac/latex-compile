@@ -9,7 +9,7 @@ Yet another script to compile your latex documents.
 - run pdflatex the right number of times
 - also run bibtex if needed
 - pretty-print warnings and error messages
-- "daemon"-mode: monitors your files and recompile when needed, for real-time WYSISWG editing
+- "daemon"-mode: monitors your files and recompile when needed, for near-real-time WYSISWG editing
 
 
 
@@ -25,7 +25,7 @@ Yet another script to compile your latex documents.
   (and/or per user ?) 
   example of such message:
 
-    Package frenchb.ldf Warning: The definition of \@makecaption has been changed.
+        Package frenchb.ldf Warning: The definition of \@makecaption has been changed.
 
 - an option to proceed despite bibtex errors.
 
