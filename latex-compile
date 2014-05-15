@@ -314,10 +314,17 @@ if __name__ == '__main__':
         latex_full_build()
     except (LatexCompileError,BibtexError):
         pass
+    except KeyboardInterrupt:
+        print# newline after ^C to look good
+        sys.exit(0)
     
     while True:
 
-        time.sleep(1)
+        try:
+            time.sleep(1)
+        except KeyboardInterrupt:
+            print# newline after ^C to look good
+            sys.exit(0)
 
         pdfname=jobname+".pdf"
         pdftime=os.path.getmtime(pdfname)
@@ -340,5 +347,5 @@ if __name__ == '__main__':
             # print 70*'='
             time.sleep(1)
         except KeyboardInterrupt:
-            print
+            print# newline after ^C to look good
             sys.exit(0)
