@@ -326,15 +326,14 @@ if __name__ == '__main__':
             print# newline after ^C to look good
             sys.exit(0)
 
-        pdfname=jobname+".pdf"
-        pdftime=os.path.getmtime(pdfname)
+        last_compile_time=os.path.getmtime(jobname+".log")
 
         must_recompile=False
         for (dirpath,subdirs,filenames) in os.walk("."):
             for filename in filenames:
                 filepath=dirpath+"/"+filename
                 if not os.path.isfile(filepath): continue 
-                if os.path.getmtime(filepath) > pdftime:
+                if os.path.getmtime(filepath) > last_compile_time:
                     # print "recent file:", filepath
                     must_recompile=True
                     
