@@ -152,8 +152,9 @@ def latex_second_run():
 
 
 # Page tracking logic.
-# GS-29/04/2014-16:07. removing the closing bracket. see test-cases.
-re_page = re.compile("\[(?P<num>[0-9]+)[^/0-9]")
+# GS-29/04/2014-16:07. remove the closing bracket. see test-cases.
+# GS-22/05/2014-12:11. add the non-capturing-group matching end-of-string
+re_page = re.compile("\[(?P<num>[0-9]+)(?:$|[^/0-9])")
 def update_page (line, before):
     """Parse the given log line and return the number of the page that is
     being built after that line,  assuming the current page before the
