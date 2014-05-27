@@ -30,6 +30,3 @@ Yet another script to compile your latex documents.
         Package frenchb.ldf Warning: The definition of \@makecaption has been changed.
 
 - an option to proceed despite bibtex errors.
-
-- filter out "box warnings" (both underfull and overfull), so support
-  cases where \hfuzz doesn't work.
