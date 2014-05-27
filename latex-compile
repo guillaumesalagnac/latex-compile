@@ -111,7 +111,8 @@ def bibtex_needed():
     log=open( jobname+".log" ).read()
     return ( ("No file "+jobname+".bbl" in log) # test-cases #03, #15...
              or
-             ("LaTeX Warning: Citation " in log) )
+             ( os.path.isfile(jobname+".bbl") and # test-case #15
+               ("LaTeX Warning: Citation " in log)) ) # test-case #22 
     
 def run_bibtex():
         print "running BibTeX on %s..." % jobname
