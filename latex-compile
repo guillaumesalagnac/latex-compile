@@ -2,7 +2,7 @@
 
 import subprocess
 import os, re, sys, time, string
-
+import argparse
 
 re_file_line_error= re.compile(r'.*:[0-9]*:.*')
 
@@ -249,8 +249,9 @@ def print_warnings():
         pagenum=update_page(line,pagenum)
         update_currentfile(line) 
         
-        if ( "Overfull " in line or
-             "Underfull " in line ):
+        if (options.noboxes == False and
+            ( "Overfull " in line or
+              "Underfull " in line )):
             print_currentfile_maybe()
             print line, "(page %d)" % pagenum
 
@@ -280,30 +281,25 @@ def latex_full_build():
     
     print_warnings()
 
-# print usage and optionnaly call sys.exit
-def usage(exitcode):
-    progname=os.path.basename(sys.argv[0])
-    print "Usage: %s latexfile.tex " % progname
-    if exitcode:
-        sys.exit(exitcode)
-
 jobname=None
 if __name__ == '__main__':
 
     # option parsing
-    loop_mode = sys.argv[1] in ['-l','--loop']
-    if loop_mode: del sys.argv[1]
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument('-l','--loop', help='loop-forever mode',action="store_true")
+    argparser.add_argument('--noboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
+    argparser.add_argument('filename',metavar='FILENAME', help='your latex file')
+    options=argparser.parse_args()
 
     # argument parsing
-    jobname=sys.argv[1]
+    jobname=options.filename
     if not os.path.exists(jobname+'.tex'): jobname=jobname.replace('.tex','')
     if not os.path.exists(jobname+'.tex'): 
-        progname=os.path.basename(sys.argv[0])
-        print progname+": cannot find file '"+sys.argv[1]+"'"
+        print argparser.prog+": cannot find file '"+options.filename+"'"
         sys.exit(1)
 
     # run-once-only mode
-    if not loop_mode:
+    if not options.loop:
         try:
             latex_full_build()
         except (LatexCompileError,BibtexError):
