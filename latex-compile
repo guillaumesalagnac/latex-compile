@@ -21,7 +21,9 @@ def latex_first_run():
                                       "-synctex=1",
                                       "-shell-escape",
                                       "-interaction=nonstopmode",
-                                      jobname])
+                                      jobname],
+                                     stderr=subprocess.STDOUT,
+                                 )
     except subprocess.CalledProcessError as e:
         vomi=e.output
     
@@ -66,7 +68,9 @@ def latex_first_run():
         if not printedsomething:
             print "could not understand error ; dumping raw logfile"
             # try to be useful even if we could not understand the log
-            print vomi
+            print "..."
+            print "..."
+            print "\n".join( vomi.splitlines()[-10:] ) # cf #33
             # no need to proceed if compilation produces errors
         raise LatexCompileError
 
