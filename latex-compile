@@ -230,7 +230,7 @@ print_all_filenames=False
 def print_currentfile_maybe():
     global print_all_filenames
     if print_all_filenames or (current_file() != "./"+jobname+".tex"):
-        print "in file",current_file()
+        print "in file %s:"%current_file(),
         print_all_filenames = True
     
 
