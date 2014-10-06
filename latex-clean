@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
+import argparse
 
 import glob,os, re, sys
 
 def try_remove(filename):
     if os.path.exists(filename):
-        print("deleting "+filename)
+        if not options.quiet:
+            print("deleting "+filename)
         os.unlink(filename)
 
 suffixes=['aux', 'bcf', 'bbl', 'blg', 'brf', 'dvi', 'fls',
@@ -13,51 +15,60 @@ suffixes=['aux', 'bcf', 'bbl', 'blg', 'brf', 'dvi', 'fls',
           'ps', 'pdf', 'pdfsync', 'pyg', 'run.xml', 'snm',
           'synctex.gz', 'synctex.gz(busy)', 'tex~', 'bib~', 'snm',
           'toc', 'vrb']
-        
-if len(sys.argv)>1 and sys.argv[1] == '--keep-pdf':
-    suffixes.remove('pdf')
 
-for document in glob.glob("*.tex"):
-    document=document.replace('.tex','')
-    for filename in [ document+'.'+suffix for suffix in suffixes ]:
-        try_remove(filename)
-        
-    # biblatex
-    try_remove(document+'-blx.bib')
-
-    for slide in range(0,50):
-        try_remove(document+'.'+str(slide)+'.vrb')
-
-for filename in ['texput.log','missingfonts.log','missfont.log','.figanim-generated-files']:
-    try_remove(filename)
-
+def do_clean():
+    for document in glob.glob("*.tex"):
+        document=document.replace('.tex','')
+        for filename in [ document+'.'+suffix for suffix in suffixes ]:
+            try_remove(filename)
+            
+        # biblatex
+        try_remove(document+'-blx.bib')
     
-for filename in glob.glob('*.pdftex'):#+glob.glob('fig/*.pdftex'):
-    fig=re.sub(r'(\+[0-9,]+)?\.pdftex','.fig',filename)
-    if os.path.exists(fig):
+        for slide in range(0,50):
+            try_remove(document+'.'+str(slide)+'.vrb')
+    
+    for filename in ['texput.log','missingfonts.log','missfont.log','.figanim-generated-files']:
         try_remove(filename)
-        try_remove(filename+'_t')
+    
+        
+    for filename in glob.glob('*.pdftex'):#+glob.glob('fig/*.pdftex'):
+        fig=re.sub(r'(\+[0-9,]+)?\.pdftex','.fig',filename)
+        if os.path.exists(fig):
+            try_remove(filename)
+            try_remove(filename+'_t')
+    
+    for filename in glob.glob('*.eps'):
+        fig=re.sub(r'.eps','.fig',filename)
+        if os.path.exists(fig):
+            try_remove(filename)
+    
+    for filename in glob.glob('*.pdf')+glob.glob('*/*.pdf'):
+        fig=re.sub(r'.pdf','.eps',filename)
+        if os.path.exists(fig):
+            try_remove(filename)
+    
+    for filename in glob.glob('*-eps-converted-to.pdf')+glob.glob('*/*converted-to.pdf'):
+        fig=re.sub(r'-eps-converted-to.pdf','.eps',filename)
+        if os.path.exists(fig):
+            try_remove(filename)
+    
+    for filename in glob.glob('*.pdf'):#+glob.glob('fig/*.pdftex'):
+        fig=re.sub(r'(\+[0-9,]+)?\.pdf','.fig',filename)
+        if os.path.exists(fig):
+            try_remove(filename)
+            try_remove(filename+'_t')
+    
+    
 
-for filename in glob.glob('*.eps'):
-    fig=re.sub(r'.eps','.fig',filename)
-    if os.path.exists(fig):
-        try_remove(filename)
+if __name__ == '__main__':        
+    argparser = argparse.ArgumentParser(description="delete all latex-related generated files")
+    argparser.add_argument('-k','--keep-pdf', help='keep main pdf file',action="store_true")
+    argparser.add_argument('-q','--quiet', help='dont print the names of deleted files',action="store_true")
 
-for filename in glob.glob('*.pdf')+glob.glob('*/*.pdf'):
-    fig=re.sub(r'.pdf','.eps',filename)
-    if os.path.exists(fig):
-        try_remove(filename)
+    options=argparser.parse_args()
 
-for filename in glob.glob('*-eps-converted-to.pdf')+glob.glob('*/*converted-to.pdf'):
-    fig=re.sub(r'-eps-converted-to.pdf','.eps',filename)
-    if os.path.exists(fig):
-        try_remove(filename)
+    if options.keep_pdf:
+        suffixes.remove('pdf')
 
-
-for filename in glob.glob('*.pdf'):#+glob.glob('fig/*.pdftex'):
-    fig=re.sub(r'(\+[0-9,]+)?\.pdf','.fig',filename)
-    if os.path.exists(fig):
-        try_remove(filename)
-        try_remove(filename+'_t')
-
-
+    do_clean()
