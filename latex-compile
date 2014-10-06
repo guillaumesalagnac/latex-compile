@@ -265,7 +265,7 @@ def print_warnings():
         pagenum=update_page(line,pagenum)
         update_currentfile(line) 
         
-        if (options.noboxes == False and
+        if (options.nobadboxes == False and
             ( "Overfull " in line or
               "Underfull " in line )):
             print_currentfile_maybe()
@@ -303,7 +303,7 @@ if __name__ == '__main__':
     # option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-l','--loop', help='loop-forever mode',action="store_true")
-    argparser.add_argument('--noboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
+    argparser.add_argument('--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('filename',metavar='FILENAME', help='your latex file')
     options=argparser.parse_args()
 
