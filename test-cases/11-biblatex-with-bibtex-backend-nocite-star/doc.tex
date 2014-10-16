@@ -1,0 +1,20 @@
+\documentclass{article}
+
+
+\usepackage[
+backend=bibtex,
+style=alphabetic,
+]{biblatex}
+\bibliography{doc}
+
+\begin{document}
+
+\noindent In this test case, we do an implicit reference, with a \verb+\nocite{*}+ command. \nocite{*}
+\bigskip
+
+\noindent
+Please see also test case number 10, where we use \verb+\cite{key}+ explicitely
+
+\printbibliography
+
+\end{document}

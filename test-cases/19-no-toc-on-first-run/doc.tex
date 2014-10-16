@@ -1,0 +1,21 @@
+\documentclass{article}
+\setlength{\parindent}{0pt}
+\begin{document}
+
+This document has a \verb+\tableofcontents+ (so it must be compiled at
+least twice) but otherwise it does nothing fancy.
+\bigskip
+
+The challenge is for the build system to notice this and do a second run.
+(e.g. \verb+latex-compile+ triggers on the ``No file doc.toc'' log line.)
+\bigskip
+
+The test is failed if the ``Contents'' section below is not populated.
+\tableofcontents
+
+\section{One}
+
+\section{Two}
+
+
+\end{document}

@@ -1,0 +1,24 @@
+
+default: test
+
+test: clean diff
+
+doc.pdf:
+	@latex-compile doc.tex > transcript.txt
+
+transcript.txt: doc.pdf
+
+diff: transcript.txt
+	@echo -n $(notdir $(realpath .)) 
+	@echo -n ': '
+	@diff transcript.txt ref/transcript.txt | wc -l
+
+learn: ref
+ref: transcript.txt doc.pdf 
+	@if [ -d ref ] ; then echo  please remove ref directory before learning ; exit 1 ; fi
+	@mkdir -p ref
+	@date > ref/date.txt
+	@cp doc.pdf doc.log transcript.txt ref
+
+clean:
+	@rm -f doc.{aux,synctex.gz,log,pdf} doc*.png transcript.txt

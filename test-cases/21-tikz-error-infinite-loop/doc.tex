@@ -1,0 +1,14 @@
+
+% cf http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
+
+% solution (for scripts) is to specify -halt-on-error, so that latex
+% does not wait for us forever
+
+\documentclass{standalone}
+\usepackage{tikz}
+\begin{document}
+     \begin{tikzpicture}
+          \draw [help lines] (0,0) grid (2,2) % missing semicolon here
+          \node at (1,1) {$x^2$};
+     \end{tikzpicture}
+\end{document}

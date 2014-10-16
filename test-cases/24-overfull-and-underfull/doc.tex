@@ -1,0 +1,35 @@
+\documentclass{article}
+
+\begin{document}
+
+overfull hbox:
+
+\rule{2\textwidth}{2pt}
+
+\bigskip
+
+\clearpage
+
+underfull hbox:
+
+\fbox{\parbox{6cm}{%
+\rule{5cm}{2pt}
+\rule{5cm}{8pt}
+}}
+
+\clearpage
+
+underfull vbox:
+
+% http://tex.stackexchange.com/a/46817/1769
+
+\fbox{\parbox[c][3cm][s]{4cm}{prout}}
+
+\clearpage
+
+overfull vbox:
+
+\fbox{\parbox[c][3cm][s]{4cm}{\rule{2pt}{5cm}}}
+
+
+\end{document}

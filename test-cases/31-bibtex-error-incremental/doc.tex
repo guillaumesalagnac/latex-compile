@@ -1,0 +1,16 @@
+\documentclass{article}
+
+\begin{document}
+
+This  test-case  exercises incremental  build:  on  first run,  bibtex
+returns an  error, but does create  an empty .bbl file.  On subsequent
+runs,  bibtex should  be invoked  again, hoping  that the  problem was
+fixed. 
+
+% \cite{moi2014}
+\nocite{*}
+
+\bibliographystyle{no-such-bst}
+\bibliography{doc}
+
+\end{document}
