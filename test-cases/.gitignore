@@ -12,6 +12,9 @@ doc.run.xml
 doc-blx.bib
 doc.toc
 
+# in test-case #22, doc.tex itself is also a generated file
+22-bibtex-moving-target/doc.tex
+
 # ignore framework-related working files
 ref/
 transcript.txt
