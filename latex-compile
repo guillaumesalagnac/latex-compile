@@ -8,11 +8,12 @@ re_file_line_error= re.compile(r'.*:[0-9]*:.*')
 
 class LatexCompileError(Exception): pass
 class BibtexError(Exception): pass
+class MakeglossariesError(Exception): pass
 
 def latex_first_run():
 
     oldaux_init()
-        
+
     try:
         print "compiling %s..." % (jobname+'.tex')
         vomi=subprocess.check_output(["pdflatex",
@@ -26,7 +27,7 @@ def latex_first_run():
                                  )
     except subprocess.CalledProcessError as e:
         vomi=e.output
-    
+
         printedsomething=False
         morelines=0
         acc=""
@@ -48,7 +49,7 @@ def latex_first_run():
                     continue
                 else:
                     print "" # now print a \n
-    
+
             # Here we do the actual parsing to detect error messages
             if "Undefined control sequence" in line:
                 print line,
@@ -61,10 +62,10 @@ def latex_first_run():
                 print line
                 printedsomething=True
                 # see test-cases #16 for colon and #14 for comma
-                if line[-1] in ",:": 
+                if line[-1] in ",:":
                     morelines=1
-                
-    
+
+
         if not printedsomething:
             print "could not understand error ; dumping raw logfile"
             # try to be useful even if we could not understand the log
@@ -89,7 +90,7 @@ def rerun_needed():
         # print ".aux file changed -> rerun", len(_oldaux), len(newaux)
         _oldaux=newaux
         return True
-        
+
     # GS-30/01/2014-18:47 This  is the "old approach".  I'm leaving it
     # here just in case (and after all, it doesn't hurt anyone)
     log=open( jobname+".log" ).read()
@@ -110,14 +111,33 @@ def oldaux_init():
 
     if os.path.isfile(jobname+".aux"):
         _oldaux=open( jobname+".aux" ).read()
-        
+
+def makeglossaries_needed():
+    glofilepath = jobname+".glo"
+    if os.path.isfile(glofilepath): return True
+    return False
+
+re_glossary_rejected = re.compile("[0-9]+")
+re_glossary_warning = re.compile("\[(?P<num>[0-9]+)(?:$|[^/0-9])")
+def run_makeglossaries():
+        print "running makeglossaries on %s" % jobname+".glo..."
+
+        makeglossaries_output=None
+        try:
+            makeglossaries_output=subprocess.check_output(["makeglossaries",jobname+".glo"])
+        except subprocess.CalledProcessError as e:
+            print "" # an empty line
+            print e.output,
+            raise MakeglossariesError
+# MANU TODO       Parse output to get warnings and errors
+
 def bibtex_needed():
     log=open( jobname+".log" ).read()
-    
+
     if "No file "+jobname+".bbl" in log: return True # test-cases #03, #15...
-             
+
     if ( os.path.isfile(jobname+".bbl") and # test-case #15
-        ("LaTeX Warning: Citation " in log)): # test-case #22 
+        ("LaTeX Warning: Citation " in log)): # test-case #22
         return True
 
     # design note: we rerun bibtex even if there were only warnings,
@@ -132,12 +152,12 @@ def bibtex_needed():
 
 def run_bibtex():
         print "running BibTeX on %s..." % jobname
-    
+
         # design  note: I  decide to  abort  the build  process on  bibtex
         # errors, but to proceed on warnings
         #
         # and anyway, we remain silent if no errors nor warnings
-    
+
         bibtex_output=None
         try:
             bibtex_output=subprocess.check_output(["bibtex",jobname])
@@ -146,7 +166,7 @@ def run_bibtex():
             print e.output,
             # Nirvana: pretty-print bibtex errors ?
             raise BibtexError
-        
+
         if "Warning--" in bibtex_output:
             # just repeat what bibtex said.
             print bibtex_output,
@@ -154,7 +174,7 @@ def run_bibtex():
 
 def latex_second_run():
     print "recompiling %s..." % (jobname+".tex")
-    
+
     oldaux_init()
 
     # Note: compilation errors would have been caught on first run (so
@@ -188,7 +208,7 @@ opened_files=[]
 def update_currentfile (line):
     """Parse the given logline and keep track of the file being processed"""
 
-    
+
     # if line.count('(' ) + line.count(')'):
     #     print '##%d#%d##' % (line.count('('),
     #                          line.count(')') ) , line
@@ -209,7 +229,7 @@ def update_currentfile (line):
             # if suffix does not even look like a pathname, let's not bother walking it
             if suffix[0] not in './':
                 suffix=""
-        
+
             # what we want is the longest prefix of suffix that _is_ a pathname
             while suffix and not os.path.isfile(suffix):
                 suffix=suffix[:-1]
@@ -232,7 +252,7 @@ def print_currentfile_maybe():
     if print_all_filenames or (current_file() != "./"+jobname+".tex"):
         print "in file %s:"%current_file(),
         print_all_filenames = True
-    
+
 
 re_warning = re.compile(
 "(LaTeX|Package)( (?P<pkg>.*))? Warning: (?P<text>.*)$")
@@ -263,8 +283,8 @@ def print_warnings():
                 prefix = None
 
         pagenum=update_page(line,pagenum)
-        update_currentfile(line) 
-        
+        update_currentfile(line)
+
         if (options.nobadboxes == False and
             ( "Overfull " in line or
               "Underfull " in line )):
@@ -274,7 +294,7 @@ def print_warnings():
         if "Warning: " in line:
             m = re_warning.match(line)
             if m:
-                pkg= m.groupdict()["pkg"] 
+                pkg= m.groupdict()["pkg"]
                 if pkg is None:
                     prefix = ""
                 else:
@@ -287,14 +307,18 @@ def print_warnings():
 def latex_full_build():
 
     latex_first_run() # if errors, prints them before raising exception
-    
+
+    if makeglossaries_needed():
+        run_makeglossaries()
+        latex_second_run() # MANU always recompile for now, needs improvements
+
     if bibtex_needed():
         run_bibtex()
         latex_second_run()
-    
+
     while rerun_needed():
         latex_second_run()
-    
+
     print_warnings()
 
 jobname=None
@@ -312,7 +336,7 @@ if __name__ == '__main__':
     # argument parsing
     jobname=options.filename
     if not os.path.exists(jobname+'.tex'): jobname=jobname.replace('.tex','')
-    if not os.path.exists(jobname+'.tex'): 
+    if not os.path.exists(jobname+'.tex'):
         print argparser.prog+": cannot find file '"+options.filename+"'"
         sys.exit(1)
 
@@ -320,7 +344,7 @@ if __name__ == '__main__':
     if not options.loop:
         try:
             latex_full_build()
-        except (LatexCompileError,BibtexError):
+        except (LatexCompileError,BibtexError,MakeglossariesError):
             sys.exit(1)
         else:
             sys.exit(0)
@@ -328,12 +352,12 @@ if __name__ == '__main__':
     # run-forever mode
     try:
         latex_full_build()
-    except (LatexCompileError,BibtexError):
+    except (LatexCompileError,BibtexError,MakeglossariesError):
         pass
     except KeyboardInterrupt:
         print# newline after ^C to look good
         sys.exit(0)
-    
+
     while True:
 
         try:
@@ -348,17 +372,17 @@ if __name__ == '__main__':
         for (dirpath,subdirs,filenames) in os.walk("."):
             for filename in filenames:
                 filepath=dirpath+"/"+filename
-                if not os.path.isfile(filepath): continue 
+                if not os.path.isfile(filepath): continue
                 if os.path.getmtime(filepath) > last_compile_time:
                     # print "recent file:", filepath
                     must_recompile=True
-                    
+
         if not must_recompile:
             continue
 
         try:
             latex_full_build()
-        except (LatexCompileError,BibtexError):
+        except (LatexCompileError,BibtexError,MakeglossariesError):
             # print 70*'='
             time.sleep(1)
         except KeyboardInterrupt:
