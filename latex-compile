@@ -180,7 +180,7 @@ def update_page (line, before):
     ms = re_page.findall(line)
     if ms == []:
         return before
-    # print ms
+    #print ms, "in line", line
     return max(before, int(ms[-1]) + 1)
 
 # File tracking logic
@@ -194,7 +194,7 @@ def update_currentfile (line):
     #     print opened_files
 
     # skip the (dangerous) line after a badbox warning, so as not to
-    # be confused by text coming from the document (test-case #TODO)
+    # be confused by text coming from the document (test-case #35)
     if line[0:2] == '[]':
         return
 

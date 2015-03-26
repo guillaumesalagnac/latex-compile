@@ -1,0 +1,17 @@
+\documentclass{article}
+
+\usepackage{lipsum}
+
+\setlength{\overfullrule}{2em}
+
+\begin{document}
+
+\begin{itemize}
+\item 1) un \rule{2\textwidth}{3pt} 
+\item 2) deux \rule{2\textwidth}{3pt}
+\item \lipsum*[1] 3) trois \rule{2\textwidth}{3pt}
+\end{itemize}
+
+\input{subfile.tex}
+
+\end{document}
