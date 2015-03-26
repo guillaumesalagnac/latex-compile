@@ -34,3 +34,13 @@ Yet another script to compile your latex documents.
         Package frenchb.ldf Warning: The definition of \@makecaption has been changed.
 
 - an option to proceed despite bibtex errors.
+
+
+# Changelog
+
+
+* 2015-03-26 bugfix in file tracking logic (cf #35)
+* 2014-10-16 add a --version option
+* 2014-09-18 print error messages and offending filenames on the same line
+* 2014-06-11 always rerun bibtex if it previously failed (cf #31 #32)
+* 2014-06-02 addition of `latex-clean`
