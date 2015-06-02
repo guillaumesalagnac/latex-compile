@@ -286,6 +286,9 @@ def print_warnings():
                 prefix = prefix.ljust(m.start("text"))
                 text = [line]
 
+        if "pdfTeX warning:" in line:
+            print line
+
 # note: each of the functions we call here will raise an exception if
 # something goes wrong -> no need for explicit error-checking
 def latex_full_build():
