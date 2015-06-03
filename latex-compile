@@ -6,6 +6,11 @@ import argparse
 
 re_file_line_error= re.compile(r'.*:[0-9]*:.*')
 
+re_warning = re.compile(
+"(LaTeX|Package)( (?P<pkg>.*))? Warning: (?P<text>.*)$")
+
+re_package_error = re.compile(".*Package (?P<pkg>.*) Error: .*$")
+
 class LatexCompileError(Exception): pass
 class BibtexError(Exception): pass
 
@@ -30,6 +35,7 @@ def latex_first_run():
         printedsomething=False
         morelines=0
         acc=""
+        prefix=None
         for line in vomi.splitlines():
 
              # TeX breaks outputs at 79 characters. here we unbreak them
@@ -40,14 +46,23 @@ def latex_first_run():
                 line=acc+line
                 acc=""
 
+            # long error logic. cf test-case #14
+            if prefix is not None:
+                if line[:len(prefix)] == prefix:
+                    text.append(string.strip(line[len(prefix):]))
+                else:
+                    printedsomething=True
+                    print " ".join(text)
+                    prefix = None
+
             # Some error messages span several lines. here we print those lines
             if morelines:
-                print line, # don't print a \n
+                print line, # don't print a \n, so that our morelines get joined
+                printedsomething=True
                 morelines -= 1
-                if morelines:
-                    continue
-                else:
+                if morelines == 0:
                     print "" # now print a \n
+                continue
     
             # Here we do the actual parsing to detect error messages
             if "Undefined control sequence" in line:
@@ -57,14 +72,19 @@ def latex_first_run():
             elif "LaTeX Error:" in line:
                 print line
                 printedsomething=True
+            elif ": FancyVerb Error:" in line:#test-case #16
+                print line,
+                printedsomething=True
+                morelines=1
+            elif re_package_error.match(line):
+                m=re_package_error.match(line)
+                pkg = m.groupdict()["pkg"]
+                prefix = ("(%s)" % pkg)
+                text = [line]
             elif re_file_line_error.search(line):
                 print line
                 printedsomething=True
-                # see test-cases #16 for colon and #14 for comma
-                if line[-1] in ",:": 
-                    morelines=1
                 
-    
         if not printedsomething:
             print "could not understand error ; dumping raw logfile"
             # try to be useful even if we could not understand the log
@@ -236,10 +256,6 @@ def print_currentfile_maybe():
     if print_all_filenames or (current_file() != "./"+jobname+".tex"):
         print "in file %s:"%current_file(),
         print_all_filenames = True
-    
-
-re_warning = re.compile(
-"(LaTeX|Package)( (?P<pkg>.*))? Warning: (?P<text>.*)$")
 
 def print_warnings():
     log=open( jobname+".log" ).read()
