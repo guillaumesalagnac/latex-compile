@@ -95,7 +95,7 @@ def latex_first_run():
         raise LatexCompileError
 
 
-_oldaux="" # oldaux_init() is call
+_oldaux=""
 def rerun_needed():
 
     # GS-30/01/2014-18:46  "New  approach":  Instead  of  looking  for
