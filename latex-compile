@@ -15,12 +15,14 @@ class LatexCompileError(Exception): pass
 class BibtexError(Exception): pass
 
 def latex_first_run():
-
+    """Runs pdflatex on jobname.
+    In case of success, return silently.
+    In case of error, pretty-print the error message and raise a LatexCompileError."""
     oldaux_init()
         
     try:
         print "compiling %s..." % (jobname+'.tex')
-        vomi=subprocess.check_output(["pdflatex",
+        log=subprocess.check_output(["pdflatex",
                                       "-halt-on-error",
                                       "-file-line-error",
                                       "-synctex=1",
@@ -29,70 +31,71 @@ def latex_first_run():
                                       jobname],
                                      stderr=subprocess.STDOUT,
                                  )
+        return 
     except subprocess.CalledProcessError as e:
-        vomi=e.output
+        pass # let the control flow back outside the try/except block
+
+    log=e.output.splitlines()
     
-        printedsomething=False
-        morelines=0
-        acc=""
-        prefix=None
-        for line in vomi.splitlines():
+    acc=""
+    prefix=None
+    for line in log:
+        
+        # TeX breaks outputs at 79 characters. here we unbreak them
+        if len(line)==79:
+            acc+=line
+            continue
+        elif acc:
+            line=acc+line
+            acc=""
 
-             # TeX breaks outputs at 79 characters. here we unbreak them
-            if len(line)==79:
-                acc+=line
-                continue
-            elif acc:
-                line=acc+line
-                acc=""
-
-            # long error logic. cf test-case #14
-            if prefix is not None:
-                if line[:len(prefix)] == prefix:
-                    text.append(string.strip(line[len(prefix):]))
-                else:
-                    printedsomething=True
-                    print " ".join(text)
-                    prefix = None
-
-            # Some error messages span several lines. here we print those lines
-            if morelines:
-                print line, # don't print a \n, so that our morelines get joined
-                printedsomething=True
-                morelines -= 1
-                if morelines == 0:
-                    print "" # now print a \n
-                continue
+        # long error logic. cf test-case #14
+        if prefix is not None:
+            if line[:len(prefix)] == prefix:
+                text.append(string.strip(line[len(prefix):]))
+            else:
+                print " ".join(text)
+                break
     
-            # Here we do the actual parsing to detect error messages
-            if "Undefined control sequence" in line:
-                print line,
-                morelines=1
-                printedsomething=True
-            elif "LaTeX Error:" in line:
-                print line
-                printedsomething=True
-            elif ": FancyVerb Error:" in line:#test-case #16
-                print line,
-                printedsomething=True
-                morelines=1
-            elif re_package_error.match(line):
-                m=re_package_error.match(line)
-                pkg = m.groupdict()["pkg"]
-                prefix = ("(%s)" % pkg)
-                text = [line]
-            elif re_file_line_error.search(line):
-                print line
-                printedsomething=True
-                
-        if not printedsomething:
-            print "could not understand error ; dumping raw logfile"
-            # try to be useful even if we could not understand the log
-            print "..."
-            print "..."
-            print "\n".join( vomi.splitlines()[-10:] ) # cf #33
-            # no need to proceed if compilation produces errors
-        raise LatexCompileError
+        # Here we do the actual parsing to detect error messages
+        if "Undefined control sequence" in line:
+            print line
+            break
+        elif "LaTeX Error:" in line:
+            print line
+            break
+        elif ": FancyVerb Error:" in line:#test-case #16
+            prefix="  "
+            text=[line]
+        elif re_package_error.match(line):
+            m=re_package_error.match(line)
+            prefix = ("(%s)" % m.groupdict()["pkg"] )
+            text = [line]
+        elif re_file_line_error.search(line):
+            print line
+            break
+
+    else:
+        print "could not understand error ; dumping raw logfile"
+        # try to be useful even if we could not understand the log
+        print "..."
+        print "..."
+        print "\n".join( log[-10:] ) # cf #33
+
+        raise LatexCompileError # notify caller of compile error
+
+    # skip the RTFM advice, and print offending lines (cf #18)
+    i=log.index(line)
+    for line in log[i:]:
+        if line[:2] == "l.": # cf #02
+            print line
+            j=log.index(line) # kludge
+            if log[j+1].strip(): # cf #14
+                print log[j+1]
+            break    
+    
+    raise LatexCompileError # notify caller of compile error
+
 
 
 _oldaux=""
