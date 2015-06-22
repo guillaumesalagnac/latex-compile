@@ -38,6 +38,8 @@ Yet another script to compile your latex documents.
 
 # Changelog
 
+
+* 2015-06-03 improvements in error pretty-printing (cf #02)
 * 2015-06-03 bugfix in error pretty-printing (cf #14 #36)
 * 2015-03-26 bugfix in file tracking logic (cf #35)
 * 2014-10-16 add a --version option
