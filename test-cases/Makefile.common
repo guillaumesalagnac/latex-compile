@@ -37,7 +37,8 @@ learn: transcript.txt
 	@if [ -d ref ] ; then echo  please remove ref directory before learning ; exit 1 ; fi
 	@mkdir -p ref
 	@date > ref/date.txt
-	@cp *.pdf doc.log transcript.txt ref
+	@test -f doc.pdf && cp doc.pdf ref ; true
+	@cp doc.log transcript.txt ref
 
 explain: transcript.txt
 	@echo  $(notdir $(realpath .)) 
