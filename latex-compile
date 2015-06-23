@@ -85,7 +85,7 @@ def latex_first_run():
         raise LatexCompileError # notify caller of compile error
 
     # skip the RTFM advice, and print offending lines (cf #18)
-    i=log.index(line)
+    i=log.index(line[:79]) # cf #37
     for line in log[i:]:
         if line[:2] == "l.": # cf #02
             print line
