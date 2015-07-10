@@ -127,6 +127,7 @@ def bibtex_needed(old_aux,new_aux):
     old_citations = [ line[10:-1] for line in old_aux.splitlines() if line[:10] == r'\citation{' ]
     new_citations = [ line[10:-1] for line in new_aux.splitlines() if line[:10] == r'\citation{' ]
 
+    # compare both sets to detect new or removed citations (cf #22 #40)
     if set(old_citations) != set(new_citations):
         # print "bibtex is needed because some citations have added or removed"
         return True

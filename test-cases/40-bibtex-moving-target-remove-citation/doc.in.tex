@@ -1,0 +1,17 @@
+\documentclass{article}
+
+\begin{document}
+
+This test-case is a variant on \#22, but in the opposite direction: we
+first  compile  our   document  with  two  references,   and  then  we
+\emph{remove} the second one. latex-compile should invoke bibtex again
+to remove the second ref from the bibliography
+\bigskip
+
+\cite{key1}
+\cite{key2} 
+
+\bibliographystyle{alpha}
+\bibliography{doc}
+
+\end{document}
