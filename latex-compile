@@ -18,7 +18,6 @@ def latex_first_run():
     """Runs pdflatex on jobname.
     In case of success, return silently.
     In case of error, pretty-print the error message and raise a LatexCompileError."""
-    oldaux_init()
         
     try:
         print "compiling %s..." % (jobname+'.tex')
@@ -96,51 +95,16 @@ def latex_first_run():
     
     raise LatexCompileError # notify caller of compile error
 
-
-
-_oldaux=""
-def rerun_needed():
-
-    # GS-30/01/2014-18:46  "New  approach":  Instead  of  looking  for
-    # explicit clues, we now stubbornly  recompile until our .aux file
-    # reaches a  fixpoint. This actually  works pretty well  (e.g. for
-    # test-cases #19 and #20), even  though using a global variable is
-    # inelegant.
-    global _oldaux
-    newaux=open( jobname+".aux" ).read()
-    if newaux != _oldaux:
-        # print ".aux file changed -> rerun", len(_oldaux), len(newaux)
-        _oldaux=newaux
-        return True
-        
-    # GS-30/01/2014-18:47 This  is the "old approach".  I'm leaving it
-    # here just in case (and after all, it doesn't hurt anyone)
-    log=open( jobname+".log" ).read()
-    if "Rerun to get cross-references right." in log:
-        print "Explicit rerun request"
-        return True
-    if "No file "+jobname+".toc" in log:
-        print "No .toc file -> rerun"
-        return True
-
-    # Note that we always have to return something :-)
-    return False
-
-# called before each pdflatex run to let us save a copy of the .aux file
-def oldaux_init():
-    global _oldaux
-    if _oldaux != "": return # only init once.
-
-    if os.path.isfile(jobname+".aux"):
-        _oldaux=open( jobname+".aux" ).read()
-        
-def bibtex_needed():
+def bibtex_needed(old_aux,new_aux):
     log=open( jobname+".log" ).read()
     
-    if "No file "+jobname+".bbl" in log: return True # test-cases #03, #15...
+    if "No file "+jobname+".bbl" in log:
+        # print "bibtex is needed because no file "+jobname+".bbl"
+        return True # test-cases #03, #15...
              
     if ( os.path.isfile(jobname+".bbl") and # test-case #15
-        ("LaTeX Warning: Citation " in log)): # test-case #22 
+        ("LaTeX Warning: Citation " in log)): # test-case #22
+        # print "bibtex is needed because Citation undefined"
         return True
 
     # design note: we rerun bibtex even if there were only warnings,
@@ -151,6 +115,22 @@ def bibtex_needed():
         if "error message" in blg: return True # test-case #31
         if "Warning--" in blg: return True # test-case #32
 
+    # detect hard-coded bibliographies (and maybe other corner cases)
+    # which don't use bibtex at all. (cf e.g. #15)
+    if not os.path.isfile(jobname+".bbl") and not os.path.isfile(jobname+".blg"):
+        return False
+
+    # on a fresh document, the aux file doesn't exist before the first pass
+    if old_aux is None:
+        old_aux=""
+        
+    old_citations = [ line[10:-1] for line in old_aux.splitlines() if line[:10] == r'\citation{' ]
+    new_citations = [ line[10:-1] for line in new_aux.splitlines() if line[:10] == r'\citation{' ]
+
+    if set(old_citations) != set(new_citations):
+        # print "bibtex is needed because some citations have added or removed"
+        return True
+    
     return False
 
 def run_bibtex():
@@ -178,8 +158,6 @@ def run_bibtex():
 def latex_second_run():
     print "recompiling %s..." % (jobname+".tex")
     
-    oldaux_init()
-
     # Note: compilation errors would have been caught on first run (so
     # we don't need the try/except clause here)
     subprocess.check_output(["pdflatex",
@@ -308,18 +286,49 @@ def print_warnings():
         if "pdfTeX warning:" in line: # see test-case #36
             print line
 
+def snapshot(suffixes =  [".aux",".glo"] ):
+    """Take a 'snapshot' of all said files.
+ Return a dictionary where keys are file names and values are file contents."""
+    snapshot=dict()
+    for filename in [ jobname + suffix for suffix in suffixes]:
+        if os.path.exists(filename):
+           snapshot[filename]=open(filename,"r").read()
+        else:
+            snapshot[filename]=None
+    return snapshot
+
+def changedfiles(oldsnapshot, newsnapshot):
+    """Compare the two snapshots and return an iterator with all the filenames that differ"""
+    for filename in newsnapshot:
+        if filename not in oldsnapshot:
+            yield filename
+        elif oldsnapshot[filename] <> newsnapshot[filename]:
+            yield filename
+
 # note: each of the functions we call here will raise an exception if
 # something goes wrong -> no need for explicit error-checking
 def latex_full_build():
-
+    before=snapshot()
     latex_first_run() # if errors, prints them before raising exception
-    
-    if bibtex_needed():
+    after=snapshot()
+
+    if bibtex_needed(before[jobname+".aux"],after[jobname+".aux"]):
         run_bibtex()
-        latex_second_run()
-    
-    while rerun_needed():
-        latex_second_run()
+
+    # We recompile the latex document stubbornly until the .aux file
+    # reaches a fixpoint. (and the .glo file, while we're at it)
+    while before <> after:
+        for filename in changedfiles(before, after):
+            if filename == jobname+".glo": # cf #38 and #39
+                print "running makeglossaries on %s..." % jobname
+                subprocess.check_output(["makeglossaries",jobname])
+            if filename == jobname+".aux":
+                # print "aux file changed !"
+                pass
+            
+        before=snapshot()
+        latex_second_run() 
+        after=snapshot()
     
     print_warnings()
 
@@ -329,7 +338,7 @@ if __name__ == '__main__':
     # option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--version', help='print version information and exit',action="version",
-                           version='%(prog)s 2015-06-22')
+                           version='%(prog)s 2015-07-10')
     argparser.add_argument('-l','--loop', help='loop-forever mode',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('filename',metavar='FILENAME', help='your latex file')

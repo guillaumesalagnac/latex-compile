@@ -14,7 +14,9 @@ suffixes=['aux', 'bcf', 'bbl', 'blg', 'brf', 'dvi', 'fls',
           'fdb_latexmk', 'log','maf', 'mtc', 'mtc0', 'nav', 'out',
           'ps', 'pdf', 'pdfsync', 'pyg', 'run.xml', 'snm',
           'synctex.gz', 'synctex.gz(busy)', 'tex~', 'bib~', 'snm',
-          'toc', 'vrb']
+          'toc', 'vrb',
+          'glg','glo','gls','ist',# glossaries.sty
+          ]
 
 def do_clean():
     for document in glob.glob("*.tex"):

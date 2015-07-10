@@ -1,0 +1,53 @@
+\documentclass{article}
+
+\usepackage{glossaries}
+
+\makeglossaries
+\setacronymstyle{long-short}
+ 
+\newglossaryentry{label1}
+{
+    name=name1,
+    description={description1}
+}
+
+\newglossaryentry{label2}
+{
+    name=name2,
+    description={description2}
+}
+
+
+
+\begin{document}
+
+This test-case is a slightly more advanced variant of the previous one
+(\#38). here we have a tall \verb+\rule+ taking up almost all space in
+the first page. Thus, when the  glossary is incorporated on the second
+pass,  the  reference  to  label2  gets pushed  on  the  second  page.
+latex-compile should detect this and run \texttt{makeglossaries} again
+(to correct  the page reference in  the aux files) and  run pdflatex a
+third time (to propagate the update into the pdf itself)
+
+some \texttt{gls} commands: 
+\gls{label1}
+
+\bigskip
+
+\rule{1pt}{14cm}
+
+
+
+\hrule
+before printglossaries command
+
+\setglossarystyle{altlist} 
+\printglossaries
+
+after printglossaries command
+\hrule
+
+\gls{label2}
+
+
+\end{document}

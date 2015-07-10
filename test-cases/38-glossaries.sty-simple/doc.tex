@@ -1,0 +1,47 @@
+\documentclass{article}
+
+\usepackage{glossaries}
+
+\makeglossaries
+\setacronymstyle{long-short}
+ 
+\newglossaryentry{label1}
+{
+    name=name1,
+    description={description1}
+}
+
+\newglossaryentry{label2}
+{
+    name=name2,
+    description={description2}
+}
+
+
+
+\begin{document}
+
+This test-case uses the \texttt{glossaries}  package. We want to check
+that the \texttt{makeglossaries} utility  is invoked between the first
+and the second pdflatex passes.
+
+some \texttt{gls} commands on the first page: 
+\gls{label1}
+\gls{label2}
+
+\bigskip
+
+\hrule
+before printglossaries
+
+\setglossarystyle{altlist} 
+\printglossaries
+
+after printglossaries
+\hrule
+
+\clearpage
+\gls{label2} here we are on page 2 ; the glossary should reflect this correctly by printing \emph{description2. 1,2}
+
+
+\end{document}

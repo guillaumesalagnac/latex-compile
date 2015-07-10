@@ -15,7 +15,15 @@ doc.toc
 # in test-case #22, doc.tex itself is also a generated file
 22-bibtex-moving-target/doc.tex
 
-# ignore framework-related working files
+# ignore glossaries.sty aux files
+doc.glg
+doc.glo
+doc.gls
+doc.ist
+
+
+
+# ignore our own testing framework stuff
 ref/
 transcript.txt
 
