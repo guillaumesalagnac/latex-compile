@@ -16,6 +16,7 @@ suffixes=['aux', 'bcf', 'bbl', 'blg', 'brf', 'dvi', 'fls',
           'synctex.gz', 'synctex.gz(busy)', 'tex~', 'bib~', 'snm',
           'toc', 'vrb',
           'glg','glo','gls','ist',# glossaries.sty
+          'ilg','ind','xdy',#xindy
           ]
 
 def do_clean():
