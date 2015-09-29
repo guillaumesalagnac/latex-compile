@@ -158,17 +158,25 @@ def run_bibtex():
 
 def latex_second_run():
     print "recompiling %s..." % (jobname+".tex")
-    
-    # Note: compilation errors would have been caught on first run (so
-    # we don't need the try/except clause here)
-    subprocess.check_output(["pdflatex",
-                             "-file-line-error",
-                             "-shell-escape",
-                             "-synctex=1",
-                             "-interaction=nonstopmode",
-                             "-halt-on-error",
-                             jobname])
 
+    try:
+        log=subprocess.check_output(["pdflatex",
+                                     "-halt-on-error",
+                                     "-file-line-error",
+                                     "-synctex=1",
+                                     "-shell-escape",
+                                     "-interaction=nonstopmode",
+                                     jobname],
+                                    stderr=subprocess.STDOUT,
+                                )
+        return 
+    except subprocess.CalledProcessError as e:
+        print "unexpected error while recompiling. dumping logfile"
+        print "..."
+        print "..."
+        print "\n".join( e.output.splitlines()[-10:] ) # cf #41
+
+        raise LatexCompileError # notify caller of compile error
 
 # Page tracking logic.
 # GS-29/04/2014-16:07. remove the closing bracket. see test-cases.
@@ -339,7 +347,7 @@ if __name__ == '__main__':
     # option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--version', help='print version information and exit',action="version",
-                           version='%(prog)s 2015-07-10')
+                           version='%(prog)s 2015-09-29')
     argparser.add_argument('-l','--loop', help='loop-forever mode',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('filename',metavar='FILENAME', help='your latex file')
