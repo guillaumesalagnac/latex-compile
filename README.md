@@ -38,6 +38,7 @@ Yet another script to compile your latex documents.
 
 # Changelog
 
+* 2015-09-30 bugfix in file tracking logic (#42)
 * 2015-09-29 don't crash when glossaries cause a compile error on later runs (cf #41)
 * 2015-07-10 add support for glossaries.sty (cf #38 #39)
 * 2015-06-03 improvements in error pretty-printing (cf #02)

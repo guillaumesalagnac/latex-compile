@@ -194,6 +194,7 @@ def update_page (line, before):
     return max(before, int(ms[-1]) + 1)
 
 # File tracking logic
+update_currentfile_should_skip_line=False
 opened_files=[]
 def update_currentfile (line):
     """Parse the given logline and keep track of the file being processed"""
@@ -201,12 +202,18 @@ def update_currentfile (line):
     # if line.count('(' ) + line.count(')'):
     #     print '##%d#%d##' % (line.count('('),
     #                          line.count(')') ) , line
-    #     print opened_files
+    #     print "opened files:", opened_files
 
+    # using a global variable is a kludge, but it works. suggestions welcome.
+    global update_currentfile_should_skip_line
+    if update_currentfile_should_skip_line:
+        update_currentfile_should_skip_line=False
+        return 
     # skip the (dangerous) line after a badbox warning, so as not to
-    # be confused by text coming from the document (test-case #35)
-    if line[0:2] == '[]':
-        return
+    # be confused by text coming from the document (test-cases #35, #42)
+    if line.startswith("Underfull") or line.startswith("Overfull"):
+        update_currentfile_should_skip_line=True
+        pass
 
     # we  walk the  logline one  character  at a  time, searching  for
     # parentheses,  and tracking  nesting level.  Some of  the opening
@@ -215,7 +222,7 @@ def update_currentfile (line):
     while line:
         if line[0] is ')':
             opened_files.pop()
-            # print opened_files
+            # print "->",opened_files
 
         if line[0] is '(':
             suffix=line[1:]
@@ -229,7 +236,7 @@ def update_currentfile (line):
                 suffix=suffix[:-1]
 
             opened_files.append(suffix)
-            # print opened_files
+            # print "->",opened_files
 
         line = line[1:]
 
@@ -347,7 +354,7 @@ if __name__ == '__main__':
     # option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--version', help='print version information and exit',action="version",
-                           version='%(prog)s 2015-09-29')
+                           version='%(prog)s 2015-09-30')
     argparser.add_argument('-l','--loop', help='loop-forever mode',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('filename',metavar='FILENAME', help='your latex file')
