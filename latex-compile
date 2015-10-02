@@ -14,13 +14,12 @@ re_package_error = re.compile(".*Package (?P<pkg>.*) Error: .*$")
 class LatexCompileError(Exception): pass
 class BibtexError(Exception): pass
 
-def latex_first_run():
-    """Runs pdflatex on jobname.
+def run_pdflatex():
+    """Run pdflatex on jobname.
     In case of success, return silently.
     In case of error, pretty-print the error message and raise a LatexCompileError."""
         
     try:
-        print "compiling %s..." % (jobname+'.tex')
         log=subprocess.check_output(["pdflatex",
                                       "-halt-on-error",
                                       "-file-line-error",
@@ -155,28 +154,6 @@ def run_bibtex():
             # just repeat what bibtex said.
             print bibtex_output,
             # Nirvana: pretty-print bibtex warnings ?
-
-def latex_second_run():
-    print "recompiling %s..." % (jobname+".tex")
-
-    try:
-        log=subprocess.check_output(["pdflatex",
-                                     "-halt-on-error",
-                                     "-file-line-error",
-                                     "-synctex=1",
-                                     "-shell-escape",
-                                     "-interaction=nonstopmode",
-                                     jobname],
-                                    stderr=subprocess.STDOUT,
-                                )
-        return 
-    except subprocess.CalledProcessError as e:
-        print "unexpected error while recompiling. dumping logfile"
-        print "..."
-        print "..."
-        print "\n".join( e.output.splitlines()[-10:] ) # cf #41
-
-        raise LatexCompileError # notify caller of compile error
 
 # Page tracking logic.
 # GS-29/04/2014-16:07. remove the closing bracket. see test-cases.
@@ -325,7 +302,8 @@ def changedfiles(oldsnapshot, newsnapshot):
 # something goes wrong -> no need for explicit error-checking
 def latex_full_build():
     before=snapshot()
-    latex_first_run() # if errors, prints them before raising exception
+    print "compiling %s..." % (jobname+'.tex')
+    run_pdflatex() # if errors, will print them before raising exception
     after=snapshot()
 
     if bibtex_needed(before[jobname+".aux"],after[jobname+".aux"]):
@@ -343,7 +321,8 @@ def latex_full_build():
                 pass
             
         before=snapshot()
-        latex_second_run() 
+        print "recompiling %s..." % (jobname+'.tex')
+        run_pdflatex() 
         after=snapshot()
     
     print_warnings()
