@@ -39,7 +39,7 @@ def run_pdflatex():
     prefix=None
     for line in log:
         
-        # TeX breaks outputs at 79 characters. here we unbreak them
+        # TeX breaks outputs at 79 characters. here we rejoin the fragments
         if len(line)==79:
             acc+=line
             continue
@@ -47,30 +47,24 @@ def run_pdflatex():
             line=acc+line
             acc=""
 
-        # long error logic. cf test-case #14
+        # long error logic. cf #14 #37
         if prefix is not None:
             if line[:len(prefix)] == prefix:
-                text.append(string.strip(line[len(prefix):]))
+                text.append( line[len(prefix):].strip() )
             else:
-                print " ".join(text)
+                line=" ".join(text)
                 break
-    
-        # Here we do the actual parsing to detect error messages
-        if "Undefined control sequence" in line:
-            print line
+
+        if "LaTeX Error:" in line: # cf #07
             break
-        elif "LaTeX Error:" in line:
-            print line
-            break
-        elif ": FancyVerb Error:" in line:#test-case #16
-            prefix="  "
-            text=[line]
-        elif re_package_error.match(line):
+
+        if re_package_error.match(line):
             m=re_package_error.match(line)
-            prefix = ("(%s)" % m.groupdict()["pkg"] )
+            prefix = "(%s)" % m.groupdict()["pkg"]
             text = [line]
-        elif re_file_line_error.search(line):
-            print line
+            continue
+            
+        if re_file_line_error.search(line):
             break
 
     else:
@@ -82,13 +76,45 @@ def run_pdflatex():
 
         raise LatexCompileError # notify caller of compile error
 
-    # skip the RTFM advice, and print offending lines (cf #18)
-    i=log.index(line[:79]) # cf #37
-    for line in log[i:]:
-        if line[:2] == "l.": # cf #02
-            print line
-            j=log.index(line) # kludge
-            if log[j+1].strip(): # cf #14
+    # 1) display the (pretty-printed) main error message
+    print line
+
+    # 2) print the details, i.e. everything up to the offending line
+    try:
+        # first, we try locate the main error message, so as to start from there
+        i=1+log.index(line[:79]) # :79 to unjoin line cf #37
+    except ValueError:
+        # Note: this happens for instance in test-cases #16, which I
+        # don't want to write specific logic for. take that, fancyvrb.
+        raise LatexCompileError #notify caller of compile error
+    
+    for detail in log[i:]:
+        if detail.strip() in line:
+            # discard this fragment if already joined into "line"
+            continue
+        if prefix is not None: # iff we are dealing with a package error
+            # similarly: discard long-error fragments when already joined
+            if detail[ len(prefix):].strip() in line:
+                continue
+            # and discard generic RTFM advice
+            if detail == "See the "+prefix[1:-1]+" package documentation for explanation.":
+                continue
+        # supress superfluous noise: RTFM, boilerplate, etc.
+        if detail.strip() in ["See the LaTeX manual or LaTeX Companion for explanation.",
+                              "Type  H <return>  for immediate help.",
+                              "Type X to quit or <RETURN> to proceed,",
+                              "or enter new name. (Default extension: sty)",
+                              "Enter file name:",
+                              "...", "<read *>",
+                              ""]:
+            continue
+
+        print detail
+
+        # Have we reached the offending line yet ?
+        if detail[:2] == "l.": 
+            j=log.index(detail) # kludge
+            if log[j+1].strip(): # offending line is sometimes displayed broken in two pieces cf #14
                 print log[j+1]
             break    
     
@@ -239,7 +265,7 @@ def print_warnings():
     acc=""
     for line in log.splitlines():
 
-        # TeX breaks outputs at 79 characters. here we unbreak them
+        # TeX breaks outputs at 79 characters. here we rejoin the fragments
         if len(line)==79:
             acc+=line
             continue
@@ -333,7 +359,7 @@ if __name__ == '__main__':
     # option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--version', help='print version information and exit',action="version",
-                           version='%(prog)s 2015-09-30')
+                           version='%(prog)s 2016-02-01')
     argparser.add_argument('-l','--loop', help='loop-forever mode',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('filename',metavar='FILENAME', help='your latex file')

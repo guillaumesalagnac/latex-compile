@@ -38,6 +38,7 @@ Yet another script to compile your latex documents.
 
 # Changelog
 
+* 2016-01-02 better error reporting (cf #43 #44) 
 * 2015-10-02 better error reporting (cf #41)
 * 2015-09-30 bugfix in file tracking logic (#42)
 * 2015-09-29 don't crash when glossaries cause a compile error on later runs (cf #41)

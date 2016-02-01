@@ -28,7 +28,7 @@ test-all:
 	done
 
 test-all-color:
-	@make test-all | grep --color -E '^.*: [^0]*$$|$$'
+	@make test-all | grep --color -E '.*: [^0].*|$$'
 
 
 compile-all:
