@@ -47,7 +47,7 @@ explain: transcript.txt
 	@echo "================ Test output ================"
 	@cat transcript.txt
 	@echo "================ Difference  ================"
-	@-diff -y ref/transcript.txt transcript.txt
+	@-diff -y --left-column ref/transcript.txt transcript.txt
 
 accept: transcript.txt
 	@rm -rf ref
