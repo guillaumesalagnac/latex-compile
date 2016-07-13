@@ -322,9 +322,11 @@ def print_warnings():
 #####################################################################
 # Main compilation stuff
             
-def snapshot(suffixes =  [".aux",".glo"] ):
-    """Take a 'snapshot' of all said files.
- Return a dictionary where keys are file names and values are file contents."""
+def snapshot():
+    """Take a 'snapshot' of known auxiliary files.
+Returns a dictionary where keys are file names and values are file contents."""
+
+    suffixes =  [".aux",".glo",".bbl",".blg"]
     snapshot=dict()
     for filename in [ jobname + suffix for suffix in suffixes]:
         if os.path.exists(filename):
@@ -351,18 +353,16 @@ def latex_full_build():
 
     if bibtex_needed(before[jobname+".aux"],after[jobname+".aux"]):
         run_bibtex()
-        after={} # invalidate snapshot to force at least one recompilation (cf #45)
+        after=snapshot() # bibtex may or may not require a recompilation (cf #45 #32)
 
-    # We recompile the latex document stubbornly until the .aux file
-    # reaches a fixpoint. (and the .glo file, while we're at it)
+    # We recompile the latex document stubbornly until all the
+    # auxiliary files (ie .aux .log etc) reach a fixpoint.
     while before <> after:
         for filename in changedfiles(before, after):
+            #print "aux file changed:", filename
             if filename == jobname+".glo": # cf #38 and #39
                 print "running makeglossaries on %s..." % jobname
                 subprocess.check_output(["makeglossaries",jobname])
-            if filename == jobname+".aux":
-                # print "aux file changed !"
-                pass
             
         before=snapshot()
         print "recompiling %s..." % (jobname+'.tex')
