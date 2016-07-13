@@ -11,6 +11,7 @@ doc.synctex.gz(busy)
 doc.run.xml
 doc-blx.bib
 doc.toc
+doc.out
 
 # in test-cases #22 and #40, doc.tex itself is also a generated file
 22-bibtex-moving-target/doc.tex
