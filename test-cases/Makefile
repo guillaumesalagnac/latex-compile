@@ -20,15 +20,15 @@ clean-all:
 	   cd "$$i" && latex-clean && make clean && cd ..;\
 	done
 
-test-all:
+test-all-nocolor:
 	@echo running $(words ${DIRS}) test-cases. '(zero means "OK")'
 	@for i in ${DIRS} ;\
 	do\
 	  make -C $$i test ;\
 	done
 
-test-all-color:
-	@make test-all | grep --color -E '.*: [^0].*|$$'
+test-all:
+	@make test-all-nocolor | grep --color -E '.*: [^0].*|$$'
 
 
 compile-all:
