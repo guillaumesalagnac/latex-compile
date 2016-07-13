@@ -351,6 +351,7 @@ def latex_full_build():
 
     if bibtex_needed(before[jobname+".aux"],after[jobname+".aux"]):
         run_bibtex()
+        after={} # invalidate snapshot to force at least one recompilation (cf #45)
 
     # We recompile the latex document stubbornly until the .aux file
     # reaches a fixpoint. (and the .glo file, while we're at it)
