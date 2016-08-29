@@ -38,6 +38,7 @@ Yet another script to compile your latex documents.
 
 # Changelog
 
+* 2016-08-29 support for `unused global option(s)' messages (cf #46)
 * 2016-07-13 better dependency handling (cf #32 #45)
 * 2016-01-02 better error reporting (cf #43 #44) 
 * 2015-10-02 better error reporting (cf #41)
