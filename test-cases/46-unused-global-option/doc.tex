@@ -1,0 +1,25 @@
+\documentclass[
+foo,
+12pt,
+bar,
+]{article}
+
+\setlength{\parindent}{0pt}
+\renewcommand{\familydefault}{\sfdefault}
+
+\begin{document}
+
+
+typographic error in class option:
+
+\begin{verbatim}
+\documentclass[foo, 12pt, bar]{memoir}
+\end{verbatim}
+
+correct info is in the log, but on two lines:
+\begin{verbatim}
+LaTeX Warning: Unused global option(s):
+    [foo,bar].
+\end{verbatim}
+
+\end{document}
