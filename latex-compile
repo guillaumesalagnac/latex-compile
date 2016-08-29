@@ -195,16 +195,25 @@ def run_bibtex():
 # GS-22/05/2014-12:11. add the non-capturing-group matching end-of-string
 re_page = re.compile("\[(?P<num>[0-9]+)(?:$|[^/0-9])")
 
-def tracker_update_page (line, before):
+tracker_current_pagenum=1
+tracker_max_pagenum=1
+
+def tracker_learn_max_pagenum():
+    log=open( jobname+".log" ).read()
+    for line in log.splitlines():
+        if "Output written on "+jobname+".pdf" in line:
+            global tracker_max_pagenum
+            tracker_max_pagenum = int(line.split('(')[1].split()[0])
+            
+def tracker_update_page (line):
     """Parse the given log line and return the number of the page that is
     being built after that line,  assuming the current page before the
     line was `before'.
     """
+    global tracker_current_pagenum
     ms = re_page.findall(line)
-    if ms == []:
-        return before
-    #print ms, "in line", line
-    return max(before, int(ms[-1]) + 1)
+    if ms:
+        tracker_current_pagenum = max(tracker_current_pagenum, int(ms[-1]) + 1)
 
 # File tracking logic
 tracker_update_currentfile_should_skip_line=False
@@ -253,7 +262,7 @@ def tracker_update_currentfile (line):
 
         line = line[1:]
 
-def tracker_current_file():
+def tracker_get_current_file():
     """Returns the filename where the tracker believes we are"""
     for i in range(-1, -len(tracker_opened_files)-1,-1):
         if tracker_opened_files[i]:
@@ -263,12 +272,16 @@ def tracker_current_file():
 tracker_print_all_filenames=False # Once we started printing filenames, we will print them all
 
 def tracker_print_warning(text):
-    """Prints either `text' or `file:line text'"""
+    """Prints either `text', `file:line text', or text (page n), etc."""
     global tracker_print_all_filenames
-    if tracker_print_all_filenames or (tracker_current_file() != "./"+jobname+".tex"):
-        print "in file %s:"%tracker_current_file(),
+    if tracker_print_all_filenames or (tracker_get_current_file() != "./"+jobname+".tex"):
+        print "in file %s:"%tracker_get_current_file(),
         tracker_print_all_filenames = True
-    print text
+    if tracker_current_pagenum > tracker_max_pagenum:
+        # page number is obviously wrong => unhelpful => skip it
+        print text
+    else:
+        print text + " (page %d)" % tracker_current_pagenum
 
 #####################################################################
 # Warning pretty-print
@@ -276,7 +289,8 @@ def tracker_print_warning(text):
 def print_warnings():
     log=open( jobname+".log" ).read()
 
-    pagenum=1
+    tracker_learn_max_pagenum()
+    
     prefix=None
     acc=""
     for line in log.splitlines():
@@ -290,32 +304,37 @@ def print_warnings():
             acc=""
 
         # Long warning logic, stolen from rubber
-        if prefix is not None:
-            if line[:len(prefix)] == prefix:
-                text.append(string.strip(line[len(prefix):]))
-            else:
-                tracker_print_warning( " ".join(text)+" (page %d)" % pagenum )
+        if prefix is not None: # then we may or may not have some more lines to accumulate
+            if line[:len(prefix)] == prefix: # then this line belongs to the current in-construction warning
+                text.append(string.strip(line[len(prefix):])) # accumulate
+            else: # we are past the end of the warning, it's not time to spit it out
+                tracker_print_warning( " ".join(text))
                 prefix = None
 
-        pagenum=tracker_update_page(line,pagenum)
+        tracker_update_page(line)
         tracker_update_currentfile(line) 
         
         if (options.nobadboxes == False and
             ( "Overfull " in line or
               "Underfull " in line )):
-            tracker_print_warning(line+ " (page %d)" % pagenum)
+            tracker_print_warning(line)
 
         if "Warning: " in line:
             m = re_warning.match(line)
             if m:
-                pkg= m.groupdict()["pkg"] 
-                if pkg is None:
-                    prefix = ""
-                else:
-                    prefix = ("(%s)" % pkg)
-                prefix = prefix.ljust(m.start("text"))
-                text = [line]
-
+                pkg= m.groupdict()["pkg"] # either offended package name, or None
+                if pkg:
+                    text = [line]
+                    # next line(s), if any, will have the package name followed by a lot of spaces, cf #26
+                    prefix = ("(%s)" % pkg).ljust(m.start("text"))
+                    
+                else: # this is a proper "LaTeX Warning"
+                    if "Unused global option" in line: # cf #46
+                        text = [line]
+                        prefix="    "
+                    else:
+                        tracker_print_warning(line)
+                
         if "pdfTeX warning:" in line: # see test-case #36
             tracker_print_warning(line)
 
