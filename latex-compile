@@ -103,10 +103,12 @@ def run_pdflatex():
         if detail.strip() in ["See the LaTeX manual or LaTeX Companion for explanation.",
                               "Type  H <return>  for immediate help.",
                               "Type X to quit or <RETURN> to proceed,",
-                              "or enter new name. (Default extension: sty)",
                               "Enter file name:",
                               "...", "<read *>",
                               ""]:
+            continue
+        # suppress interactive querying for all extensions (.sty and others)
+        if "or enter new name. (Default extension:" in detail:
             continue
 
         print detail
