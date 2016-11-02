@@ -8,7 +8,7 @@ def try_remove(filename):
     if os.path.exists(filename):
         if not options.quiet:
             print("deleting "+filename)
-        os.unlink(filename)
+        os.remove(filename)
 
 suffixes=['aux', 'bcf', 'bbl', 'blg', 'brf', 'dvi', 'fls',
           'fdb_latexmk', 'log','maf', 'mtc', 'mtc0', 'nav', 'out',
@@ -27,13 +27,21 @@ def do_clean():
             
         # biblatex
         try_remove(document+'-blx.bib')
+
+        #minted/pygmentize
+        if os.path.exists('_minted-'+document):
+            for filename in glob.glob('_minted-'+document+'/*.pygtex'):
+                try_remove(filename)
+
+            try_remove('_minted-'+document+'/default.pygstyle')
+            os.rmdir('_minted-'+document)
+        
     
         for slide in range(0,50):
             try_remove(document+'.'+str(slide)+'.vrb')
     
     for filename in ['texput.log','missingfonts.log','missfont.log','.figanim-generated-files']:
         try_remove(filename)
-    
         
     for filename in glob.glob('*.pdftex'):#+glob.glob('fig/*.pdftex'):
         fig=re.sub(r'(\+[0-9,]+)?\.pdftex','.fig',filename)
@@ -61,7 +69,7 @@ def do_clean():
         if os.path.exists(fig):
             try_remove(filename)
             try_remove(filename+'_t')
-    
+
     
 
 if __name__ == '__main__':        
