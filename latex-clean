@@ -32,8 +32,9 @@ def do_clean():
         if os.path.exists('_minted-'+document):
             for filename in glob.glob('_minted-'+document+'/*.pygtex'):
                 try_remove(filename)
-
-            try_remove('_minted-'+document+'/default.pygstyle')
+            for filename in glob.glob('_minted-'+document+'/*.pygstyle'):
+                try_remove(filename)
+                
             os.rmdir('_minted-'+document)
         
     
