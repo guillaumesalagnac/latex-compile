@@ -64,7 +64,7 @@ explain: transcript.txt
 
 accept: transcript.txt
 	@rm -rf ref
-	@make learn
+	@make -s learn
 
 ##################################################
 # Cleanup

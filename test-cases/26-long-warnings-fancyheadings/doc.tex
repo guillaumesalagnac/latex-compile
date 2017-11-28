@@ -7,3 +7,16 @@
 prout
 
 \end{document}
+
+
+Note that this warning is displayed by latex-compile with the full
+path to fancyheadings.sty, because the warning is issued while the
+package is being loaded.:
+
+    in file /opt/local/share/texmf-texlive/tex/latex/fancyhdr/fancyheadings.sty: Package fancyheadings Warning: Please stop using fancyheadings! Use fancyhdr instead. We will call fancyhdr with the very same options you passed to fancyheadings.  fancyhdr is 99 percent compatible with fancyheadings. The only incompatibility is that \headrulewidth and \footrulewidth and their \plain... versions are no longer length parameters, but normal macros (to be changed with \renewcommand rather than \setlength).. (page 1)
+
+Ordinary warnings issued while processing the body-text will be displayed without such path, e.g.
+
+    Package hyperref Warning: Token not allowed in a PDF string
+
+etc.

@@ -7,13 +7,13 @@ compile: transcript.txt
 
 transcript.txt:
 	-@latex-compile doc.tex > transcript.txt ; true
-	@python -c 'print 20*"="' >> transcript.txt
+	@python2 -c 'print 20*"="' >> transcript.txt
 	-@latex-compile doc.tex >> transcript.txt ; true 
 
 test: clean diff
 
 accept learn diff ref explain: transcript.txt
-	@make -f ../Makefile.common $@
+	@make -s -f ../Makefile.common $@
 
 clean:
-	@ make -f ../Makefile.common clean
+	@ make -s -f ../Makefile.common clean

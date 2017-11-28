@@ -1,6 +1,6 @@
 
 # Warning: no spaces allows in dirnames
-DIRS=$(wildcard [0-9]*-*)
+DIRS=$(sort $(wildcard [0-9]*-*))
 
 default: test-all
 
@@ -24,11 +24,11 @@ test-all-nocolor:
 	@echo running $(words ${DIRS}) test-cases. '(zero means "OK")'
 	@for i in ${DIRS} ;\
 	do\
-	  make -C $$i test ;\
+	  make -s -C $$i test ;\
 	done
 
 test-all:
-	@make test-all-nocolor | grep --color -E '.*: [^0].*|$$'
+	@make -s test-all-nocolor | grep --color -E '.*: [^0].*|$$'
 
 
 compile-all:
