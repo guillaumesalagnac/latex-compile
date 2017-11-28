@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 import subprocess
 import os, re, sys, time, string
@@ -190,6 +190,20 @@ def run_bibtex():
 # keeps track of current document page and current source file so that
 # warnings and errors are reported with relevant details
 
+def tracker_init():
+    """reset the page/file tracker state"""
+    # page tracking
+    global tracker_current_pagenum
+    tracker_current_pagenum = 1
+    global tracker_max_pagenum
+    tracker_max_pagenum = tracker_guess_max_pagenum()
+    # file tracking
+    global tracker_update_currentfile_should_skip_line
+    tracker_update_currentfile_should_skip_line=False
+    global tracker_opened_files
+    tracker_opened_files=[]
+    global tracker_print_all_filenames
+    tracker_print_all_filenames=False # Once we started printing filenames, we will print them all
 
 # Page tracking logic
 
@@ -197,15 +211,11 @@ def run_bibtex():
 # GS-22/05/2014-12:11. add the non-capturing-group matching end-of-string
 re_page = re.compile("\[(?P<num>[0-9]+)(?:$|[^/0-9])")
 
-tracker_current_pagenum=1
-tracker_max_pagenum=1
-
-def tracker_learn_max_pagenum():
+def tracker_guess_max_pagenum():
     log=open( jobname+".log" ).read()
     for line in log.splitlines():
         if "Output written on "+jobname+".pdf" in line:
-            global tracker_max_pagenum
-            tracker_max_pagenum = int(line.split('(')[1].split()[0])
+            return int(line.split('(')[1].split()[0])
             
 def tracker_update_page (line):
     """Parse the given log line and return the number of the page that is
@@ -218,8 +228,6 @@ def tracker_update_page (line):
         tracker_current_pagenum = max(tracker_current_pagenum, int(ms[-1]) + 1)
 
 # File tracking logic
-tracker_update_currentfile_should_skip_line=False
-tracker_opened_files=[]
 def tracker_update_currentfile (line):
     """Parse the given logline and keep track of the file being processed"""
     
@@ -271,8 +279,6 @@ def tracker_get_current_file():
             return tracker_opened_files[i]
     raise AssertionError # at worst, we should return the jobname
 
-tracker_print_all_filenames=False # Once we started printing filenames, we will print them all
-
 def tracker_print_warning(text):
     """Prints either `text', `file:line text', or text (page n), etc."""
     global tracker_print_all_filenames
@@ -290,8 +296,7 @@ def tracker_print_warning(text):
     
 def print_warnings():
     log=open( jobname+".log" ).read()
-
-    tracker_learn_max_pagenum()
+    tracker_init()
     
     prefix=None
     acc=""
