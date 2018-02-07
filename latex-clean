@@ -28,6 +28,9 @@ def do_clean():
         # biblatex
         try_remove(document+'-blx.bib')
 
+        # pdfjam-slides6up
+        try_remove(document+'-6up.pdf')
+
         #minted/pygmentize
         if os.path.exists('_minted-'+document):
             for filename in glob.glob('_minted-'+document+'/*.pygtex'):
