@@ -159,6 +159,13 @@ def bibtex_needed(old_aux,new_aux):
         # print "bibtex is needed because some citations have added or removed"
         return True
 
+    if os.path.isfile(jobname+".blg"): # cf test-case #49
+        last_bibtex_time = os.path.getmtime(jobname+".blg")
+        bibnames=[ line[18:].strip() for line in open( jobname+".blg" ).readlines() if 'Database file #1:' in line ]
+        bibname=bibnames[0] # so far we only support single-database documents
+        if os.path.getmtime(bibname) >= last_bibtex_time:
+            return True
+
     return False
 
 def run_bibtex():
