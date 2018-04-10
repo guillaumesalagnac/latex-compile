@@ -277,7 +277,8 @@ def tracker_get_current_file():
     for i in range(-1, -len(tracker_opened_files)-1,-1):
         if tracker_opened_files[i]:
             return tracker_opened_files[i]
-    raise AssertionError # at worst, we should return the jobname
+    # GS-2018-04-10-17:06 bugfix for test-case #48
+    return "./"+jobname+".tex"
 
 def tracker_print_warning(text):
     """Prints either `text', `file:line text', or text (page n), etc."""

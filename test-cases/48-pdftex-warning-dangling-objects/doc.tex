@@ -1,0 +1,28 @@
+\documentclass[notes=only]{beamer}
+
+\setbeamertemplate{blocks}[rounded][shadow=true]
+
+\begin{document}
+\tracingstats=0
+\begin{frame}
+  \begin{block}{Block title}
+    Block body
+  \end{block}
+\end{frame}
+
+\end{document}
+
+For some reason, this document causes a pdftex warning to be issued at
+the very end of the compilation process (also cf .log):
+
+    No pages of output.
+    
+    pdfTeX warning: pdflatex: dangling objects discarded, no output file produced.
+
+
+
+The problem with  latex-compile lies in the  page/file tracking logic:
+once the  final parenthesis (of  the .log output) has  been processed,
+then    our   ``stack''    of    included   files    is   empty    and
+`tracker_get_current_file`  cannot  pop  from  it,  so  it  throws  an
+`AssertionError`
