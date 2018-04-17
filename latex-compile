@@ -161,10 +161,11 @@ def bibtex_needed(old_aux,new_aux):
 
     if os.path.isfile(jobname+".blg"): # cf test-case #49
         last_bibtex_time = os.path.getmtime(jobname+".blg")
-        bibnames=[ line[18:].strip() for line in open( jobname+".blg" ).readlines() if 'Database file #1:' in line ]
-        bibname=bibnames[0] # so far we only support single-database documents
-        if os.path.getmtime(bibname) >= last_bibtex_time:
-            return True
+        bibnames=[ line[18:].strip() for line in open( jobname+".blg" ).readlines() if 'Database file' in line ]
+        for bibname in bibnames: # iterate over all bibtex files, cf test-case #50
+            if '-blx.bib' in bibname: continue # irrelevant because this one is biblatex-generated
+            if os.path.getmtime(bibname) >= last_bibtex_time:
+                return True
 
     return False
 
@@ -393,7 +394,7 @@ def latex_full_build():
     # auxiliary files (ie .aux .log etc) reach a fixpoint.
     while before <> after:
         for filename in changedfiles(before, after):
-            #print "aux file changed:", filename
+            # print "file changed:", filename
             if filename == jobname+".glo": # cf #38 and #39
                 print "running makeglossaries on %s..." % jobname
                 subprocess.check_output(["makeglossaries",jobname])
