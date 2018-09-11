@@ -415,7 +415,7 @@ if __name__ == '__main__':
     # option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--version', help='print version information and exit',action="version",
-                           version='%(prog)s 2016-08-29')
+                           version='%(prog)s 2018-09-11')
     argparser.add_argument('-l','--loop', help='loop-forever mode',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('filename',metavar='FILENAME', help='your latex file')
