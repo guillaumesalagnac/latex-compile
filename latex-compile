@@ -323,7 +323,7 @@ def print_warnings():
         if prefix is not None: # then we may or may not have some more lines to accumulate
             if line[:len(prefix)] == prefix: # then this line belongs to the current in-construction warning
                 text.append(string.strip(line[len(prefix):])) # accumulate
-            else: # we are past the end of the warning, it's not time to spit it out
+            else: # we are past the end of the warning, it's now time to spit it out
                 tracker_print_warning( " ".join(text))
                 prefix = None
 
