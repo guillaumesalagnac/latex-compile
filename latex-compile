@@ -242,7 +242,7 @@ def tracker_update_currentfile (line):
     # if line.count('(' ) + line.count(')'):
     #     print '##%d#%d##' % (line.count('('),
     #                          line.count(')') ) , line
-    #     print "opened files:", opened_files
+    #     print "opened files:", tracker_opened_files
 
     # using a global variable is a kludge, but it works. suggestions welcome.
     global tracker_update_currentfile_should_skip_line
@@ -261,8 +261,12 @@ def tracker_update_currentfile (line):
     # pathname stack.
     while line:
         if line[0] is ')':
-            tracker_opened_files.pop()
-            # print "->",tracker_opened_files
+            try:
+                tracker_opened_files.pop()
+                # print "->",tracker_opened_files        
+            except:
+                # the try/except fixes test-case #51
+                pass
 
         if line[0] is '(':
             suffix=line[1:]
@@ -415,7 +419,7 @@ if __name__ == '__main__':
     # option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--version', help='print version information and exit',action="version",
-                           version='%(prog)s 2018-09-11')
+                           version='%(prog)s 2018-10-01')
     argparser.add_argument('-l','--loop', help='loop-forever mode',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('filename',metavar='FILENAME', help='your latex file')

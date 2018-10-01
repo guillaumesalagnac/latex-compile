@@ -1,0 +1,22 @@
+\documentclass{article}
+
+\usepackage{tikz}
+
+\begin{document}
+
+\begin{tikzpicture}
+  \draw[->] (0,0) -- (0,1);
+  ) ) ) ) ) ) ) % spurious closing parentheses
+\end{tikzpicture}
+
+\end{document}
+
+% rationale: because reasons, this example causes specific "confusing"
+% messages to appear in the log files, e.g:
+%
+%        Missing character: There is no ) in font nullfont!
+%
+% latex-compile assumes  (most) closing  parentheses to  be part  of a
+% "loading file" info cf https://tex.stackexchange.com/a/32215
+%
+% Fix: we should recognize and ignore these spurious closing parens
