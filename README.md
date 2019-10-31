@@ -3,7 +3,6 @@ latex-compile
 
 Yet another script to compile your latex documents.
 
-
 ## Features
 
 - run pdflatex the right number of times
@@ -21,17 +20,6 @@ Yet another script to compile your latex documents.
 
 ## Installation
 
-- make sure python 2.7+ is installed
+- make sure python 3 is installed
 - drop `latex-compile` somewhere in your path
 - profit
-
-## Wishlist
-
-- filter out annoying warnings on a document-per-document basis
-  (and/or per user ?) 
-  example of such message:
-
-        Package frenchb.ldf Warning: The definition of \@makecaption has been changed.
-
-- an option to proceed despite bibtex errors.
-
