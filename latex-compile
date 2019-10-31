@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import subprocess
 import os, re, sys, time, string
@@ -6,8 +6,7 @@ import argparse
 
 re_file_line_error= re.compile(r'.*:[0-9]*:.*')
 
-re_warning = re.compile(
-"(LaTeX|Package|Class)( (?P<pkg>.*))? Warning: (?P<text>.*)$")
+re_warning = re.compile("(Package|Class)( (?P<pkg>.*)) Warning: (?P<text>.*)$")
 
 re_package_error = re.compile(".*Package (?P<pkg>.*) Error: .*$")
 
@@ -20,25 +19,23 @@ def run_pdflatex():
     In case of error, pretty-print the error message and raise a LatexCompileError."""
         
     try:
-        log=subprocess.check_output(["pdflatex",
-                                      "-halt-on-error",
-                                      "-file-line-error",
-                                      "-synctex=1",
-                                      "-shell-escape",
-                                      "-interaction=nonstopmode",
-                                      jobname],
-                                     stderr=subprocess.STDOUT,
-                                 )
+        subprocess.check_output(["pdflatex",
+                                 "-halt-on-error",
+                                 "-file-line-error",
+                                 "-synctex=1",
+                                 "-shell-escape",
+                                 "-interaction=nonstopmode",
+                                 jobname],
+                                stderr=subprocess.STDOUT,
+        )
         return 
     except subprocess.CalledProcessError as e:
-        pass # let the control flow back outside the try/except block
-
-    log=e.output.splitlines()
+        log=e.output.decode('ascii',errors='replace').splitlines()
     
     acc=""
     prefix=None
     for line in log:
-        
+
         # TeX breaks outputs at 79 characters. here we rejoin the fragments
         if len(line)==79:
             acc+=line
@@ -114,7 +111,7 @@ def run_pdflatex():
         print(detail)
 
         # Have we reached the offending line yet ?
-        if detail[:2] == "l.": 
+        if detail[:2].startswith("l."): 
             j=log.index(detail) # kludge
             if log[j+1].strip(): # offending line is sometimes displayed broken in two pieces cf #14
                 print(log[j+1])
@@ -151,6 +148,9 @@ def bibtex_needed(old_aux,new_aux):
     if old_aux is None:
         old_aux=""
         
+    old_aux = old_aux.decode('ascii')
+    new_aux = new_aux.decode('ascii')
+        
     old_citations = [ line[10:-1] for line in old_aux.splitlines() if line[:10] == r'\citation{' ]
     new_citations = [ line[10:-1] for line in new_aux.splitlines() if line[:10] == r'\citation{' ]
 
@@ -179,16 +179,16 @@ def run_bibtex():
     
         bibtex_output=None
         try:
-            bibtex_output=subprocess.check_output(["bibtex",jobname])
+            bibtex_output=subprocess.check_output(["bibtex",jobname]).decode('ascii')
         except subprocess.CalledProcessError as e:
             print("") # an empty line
-            print(e.output, end=' ')
+            print(e.output.decode('ascii')[:-1])
             # Nirvana: pretty-print bibtex errors ?
             raise BibtexError
         
         if "Warning--" in bibtex_output:
             # just repeat what bibtex said.
-            print(bibtex_output, end=' ')
+            print(bibtex_output[:-1])
             # Nirvana: pretty-print bibtex warnings ?
 
 
@@ -198,123 +198,141 @@ def run_bibtex():
 # keeps track of current document page and current source file so that
 # warnings and errors are reported with relevant details
 
-def tracker_init():
-    """reset the page/file tracker state"""
-    # page tracking
-    global tracker_current_pagenum
-    tracker_current_pagenum = 1
-    global tracker_max_pagenum
-    tracker_max_pagenum = tracker_guess_max_pagenum()
-    # file tracking
-    global tracker_update_currentfile_should_skip_line
-    tracker_update_currentfile_should_skip_line=False
-    global tracker_opened_files
-    tracker_opened_files=[]
-    global tracker_print_all_filenames
-    tracker_print_all_filenames=False # Once we started printing filenames, we will print them all
-
-# Page tracking logic
-
 # GS-29/04/2014-16:07. remove the closing bracket. see test-cases.
 # GS-22/05/2014-12:11. add the non-capturing-group matching end-of-string
 re_page = re.compile("\[(?P<num>[0-9]+)(?:$|[^/0-9])")
 
-def tracker_guess_max_pagenum():
-    log=open( jobname+".log" ).read()
-    for line in log.splitlines():
-        if "Output written on "+jobname+".pdf" in line:
-            return int(line.split('(')[1].split()[0])
-            
-def tracker_update_page (line):
-    """Parse the given log line and return the number of the page that is
-    being built after that line,  assuming the current page before the
-    line was `before'.
-    """
-    global tracker_current_pagenum
-    ms = re_page.findall(line)
-    if ms:
-        tracker_current_pagenum = max(tracker_current_pagenum, int(ms[-1]) + 1)
+class PageFileTracker():
+    def __init__(self):
+        self.current_pagenum=1
+        self.update_currentfile_should_skip_line=False # XXX
+        self.opened_files=[]
+        self.print_all_filenames=False # Once we start printing filenames, we will print them all
 
-# File tracking logic
-def tracker_update_currentfile (line):
-    """Parse the given logline and keep track of the file being processed"""
-    
-    # if line.count('(' ) + line.count(')'):
-    #     print '##%d#%d##' % (line.count('('),
-    #                          line.count(')') ) , line
-    #     print "opened files:", tracker_opened_files
-
-    # using a global variable is a kludge, but it works. suggestions welcome.
-    global tracker_update_currentfile_should_skip_line
-    if tracker_update_currentfile_should_skip_line:
-        tracker_update_currentfile_should_skip_line=False
-        return 
-    # skip the (dangerous) line after a badbox warning, so as not to
-    # be confused by text coming from the document (test-cases #35, #42)
-    if line.startswith("Underfull") or line.startswith("Overfull"):
-        tracker_update_currentfile_should_skip_line=True
-        pass
-
-    # we  walk the  logline one  character  at a  time, searching  for
-    # parentheses,  and tracking  nesting level.  Some of  the opening
-    # parentheses are  followed by a pathname,  so we push these  on a
-    # pathname stack.
-    while line:
-        if line[0] is ')':
-            try:
-                tracker_opened_files.pop()
-                # print "->",tracker_opened_files        
-            except:
-                # the try/except fixes test-case #51
-                pass
-
-        if line[0] is '(':
-            suffix=line[1:]
-
-            # if suffix does not even look like a pathname, let's not bother walking it
-            if suffix[0] not in './':
-                suffix=""
+        # guess maximum page number
+        self.max_pagenum=0
+        for line in open( jobname+".log" ):
+            if "Output written on "+jobname+".pdf" in line:
+                self.max_pagenum=int(line.split('(')[1].split()[0])
         
-            # what we want is the longest prefix of suffix that _is_ a pathname
-            while suffix and not os.path.isfile(suffix):
-                suffix=suffix[:-1]
+                
+    def update_page (self,line):
+        ms = re_page.findall(line)
+        if ms:
+            self.current_pagenum = max(self.current_pagenum, int(ms[-1]) + 1)
 
-            tracker_opened_files.append(suffix)
-            # print "->",tracker_opened_files
 
-        line = line[1:]
+    def update_currentfile (self,line):
+        """Parse the given logline and keep track of the file being processed"""
 
-def tracker_get_current_file():
-    """Returns the filename where the tracker believes we are"""
-    for i in range(-1, -len(tracker_opened_files)-1,-1):
-        if tracker_opened_files[i]:
-            return tracker_opened_files[i]
-    # GS-2018-04-10-17:06 bugfix for test-case #48
-    return "./"+jobname+".tex"
+        # if line.count('(' ) + line.count(')'):
+        #     print '##%d#%d##' % (line.count('('),
+        #                          line.count(')') ) , line
+        #     print "opened files:", tracker_opened_files
 
-def tracker_print_warning(text):
-    """Prints either `text', `file:line text', or text (page n), etc."""
-    global tracker_print_all_filenames
-    if tracker_print_all_filenames or (tracker_get_current_file() != "./"+jobname+".tex"):
-        print("in file %s:"%tracker_get_current_file(), end=' ')
-        tracker_print_all_filenames = True
-    if tracker_current_pagenum > tracker_max_pagenum:
-        # page number is obviously wrong => unhelpful => skip it
-        print(text)
-    else:
-        print(text + " (page %d)" % tracker_current_pagenum)
+        if self.update_currentfile_should_skip_line:
+            self.update_currentfile_should_skip_line=False
+            return 
+
+        # skip the (dangerous) line after a badbox warning, so as not to
+        # be confused by text coming from the document (test-cases #35, #42)
+        if line.startswith("Underfull") or line.startswith("Overfull"):
+            self.update_currentfile_should_skip_line=True
+            pass
+
+        # we  walk the  logline one  character  at a  time, searching  for
+        # parentheses,  and tracking  nesting level.  Some of  the opening
+        # parentheses are  followed by a pathname,  so we push these  on a
+        # pathname stack.
+        while line:
+            if line[0] is ')':
+                try:
+                    self.opened_files.pop()
+                except: # this is a workaround for #51
+                    pass
+
+            if line[0] is '(':
+                suffix=line[1:]
+
+                # if suffix does not even look like a pathname, let's not bother walking it
+                if suffix[0] not in './':
+                    suffix=""
+
+                # what we want is the longest prefix of suffix that _is_ a pathname
+                while suffix and not os.path.isfile(suffix):
+                    suffix=suffix[:-1]
+
+                self.opened_files.append(suffix)
+
+            line = line[1:]
+
+    def get_current_file(self):
+        """Returns the filename where the tracker believes we are"""
+        for i in range(-1, -len(self.opened_files)-1,-1):
+            if self.opened_files[i]:
+                return self.opened_files[i]
+        # GS-2018-04-10-17:06 bugfix for test-case #48
+        return "./"+jobname+".tex"
+
+    def print(self,text):
+        """Prints either `text', `file:line text', or text (page n), etc."""
+        if self.print_all_filenames or (self.get_current_file() != "./"+jobname+".tex"):
+            print("in file %s:"%self.get_current_file(), end=' ')
+            self.print_all_filenames = True
+        if self.current_pagenum > self.max_pagenum:
+            # page number is obviously wrong => unhelpful => skip it
+            print(text)
+        else:
+            print(text + " (page %d)" % self.current_pagenum)
 
 #####################################################################
 # Warning pretty-print
-    
-def print_warnings():
-    log=open( jobname+".log" ).read()
-    tracker_init()
-    
-    prefix=None
-    acc=""
-    for line in log.splitlines():
 
+class WarningParser():
+    def __init__(self,printer):
+        # actual message to be printed on the console
+        self.text = ''
+        # in long warnings, we expect loglines to have a prefix e.g. '(hyperref)'
+        self.prefix = ''
+        # handle to the PageFileTracker
+        self.printer=printer
+        
+    def parse(self,line):
+        if (len(line) == 0) and (len(self.text)>0): # now is finally the time to spit out the message
+            self.printer.print(self.text)
+            self.text=''
+            self.prefix=''
+            
+        elif self.prefix and line.startswith(self.prefix):  # we are in the middle of a (prefixed)-warning
+            self.text += ' '+line[len(self.prefix):]
+
+        elif re_warning.match(line): # Class and package warnings
+            m   = re_warning.match(line)
+            pkg = m.groupdict()["pkg"]
+            self.prefix = ("(%s)" % pkg).ljust(m.start("text")) # guess the prefix. BUT: can be wrong, cf #52
+            self.text=line
+
+        elif line.startswith('LaTeX Warning: '): # cf #05, #09, #13, #17, #27...
+            self.text=line
+            if ' Unused global option(s):' in line:
+                self.prefix="    " # offending options on next logline, cf #46
+
+        elif line.startswith('pdfTeX warning:'): # cf #36, #48
+            self.printer.print(line) # pdfTeX warnings are always single-line
+
+        elif line.startswith(r'Overfull ') or line.startswith(r'Underfull '): # cf #30, #34
+            if options.nobadboxes is False:
+                self.printer.print(line) # bad boxes are always single-line
+
+        elif len(self.text)>0: # we are in the middle of a non-prefixed warning e.g. #52
+            self.text += ' '+line.strip()
+
+def print_warnings():
+    tracker=PageFileTracker()
+    wp = WarningParser(tracker)
+    acc=''
+    for line in open( jobname+".log" ).read().splitlines():
+        
         # TeX breaks outputs at 79 characters. here we rejoin the fragments
         if len(line)==79:
             acc+=line
@@ -323,40 +341,10 @@ def print_warnings():
             line=acc+line
             acc=""
 
-        # Long warning logic, stolen from rubber
-        if prefix is not None: # then we may or may not have some more lines to accumulate
-            if line[:len(prefix)] == prefix: # then this line belongs to the current in-construction warning
-                text.append(string.strip(line[len(prefix):])) # accumulate
-            else: # we are past the end of the warning, it's now time to spit it out
-                tracker_print_warning( " ".join(text))
-                prefix = None
+        tracker.update_page(line)
+        tracker.update_currentfile(line) 
 
-        tracker_update_page(line)
-        tracker_update_currentfile(line) 
-        
-        if (options.nobadboxes == False and
-            ( "Overfull " in line or
-              "Underfull " in line )):
-            tracker_print_warning(line)
-
-        if "Warning: " in line:
-            m = re_warning.match(line)
-            if m:
-                pkg= m.groupdict()["pkg"] # either offended package name, or None
-                if pkg:
-                    text = [line]
-                    # next line(s), if any, will have the package name followed by a lot of spaces, cf #26
-                    prefix = ("(%s)" % pkg).ljust(m.start("text"))
-                    
-                else: # this is a proper "LaTeX Warning"
-                    if "Unused global option" in line: # cf #46
-                        text = [line]
-                        prefix="    "
-                    else:
-                        tracker_print_warning(line)
-                
-        if "pdfTeX warning:" in line: # see test-case #36
-            tracker_print_warning(line)
+        wp.parse(line)
 
 #####################################################################
 # Main compilation stuff
@@ -369,7 +357,7 @@ Returns a dictionary where keys are file names and values are file contents."""
     snapshot=dict()
     for filename in [ jobname + suffix for suffix in suffixes]:
         if os.path.exists(filename):
-           snapshot[filename]=open(filename,"r").read()
+           snapshot[filename]=open(filename,"rb").read()
         else:
             snapshot[filename]=None
     return snapshot
@@ -419,7 +407,7 @@ if __name__ == '__main__':
     # option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--version', help='print version information and exit',action="version",
-                           version='%(prog)s 2018-10-01')
+                           version='%(prog)s 2019-10-31')
     argparser.add_argument('-l','--loop', help='loop-forever mode',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('filename',metavar='FILENAME', help='your latex file')
