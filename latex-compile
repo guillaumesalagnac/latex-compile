@@ -7,7 +7,7 @@ import argparse
 re_file_line_error= re.compile(r'.*:[0-9]*:.*')
 
 re_warning = re.compile(
-"(LaTeX|Package)( (?P<pkg>.*))? Warning: (?P<text>.*)$")
+"(LaTeX|Package|Class)( (?P<pkg>.*))? Warning: (?P<text>.*)$")
 
 re_package_error = re.compile(".*Package (?P<pkg>.*) Error: .*$")
 
@@ -68,16 +68,16 @@ def run_pdflatex():
             break
 
     else:
-        print "could not understand error ; dumping raw logfile"
+        print("could not understand error ; dumping raw logfile")
         # try to be useful even if we could not understand the log
-        print "..."
-        print "..."
-        print "\n".join( log[-10:] ) # cf #33
+        print("...")
+        print("...")
+        print("\n".join( log[-10:] )) # cf #33
 
         raise LatexCompileError # notify caller of compile error
 
     # 1) display the (pretty-printed) main error message
-    print line
+    print(line)
 
     # 2) print the details, i.e. everything up to the offending line
     try:
@@ -111,13 +111,13 @@ def run_pdflatex():
         if "or enter new name. (Default extension:" in detail:
             continue
 
-        print detail
+        print(detail)
 
         # Have we reached the offending line yet ?
         if detail[:2] == "l.": 
             j=log.index(detail) # kludge
             if log[j+1].strip(): # offending line is sometimes displayed broken in two pieces cf #14
-                print log[j+1]
+                print(log[j+1])
             break    
     
     raise LatexCompileError # notify caller of compile error
@@ -170,7 +170,7 @@ def bibtex_needed(old_aux,new_aux):
     return False
 
 def run_bibtex():
-        print "running BibTeX on %s..." % jobname
+        print("running BibTeX on %s..." % jobname)
     
         # design  note: I  decide to  abort  the build  process on  bibtex
         # errors, but to proceed on warnings
@@ -181,14 +181,14 @@ def run_bibtex():
         try:
             bibtex_output=subprocess.check_output(["bibtex",jobname])
         except subprocess.CalledProcessError as e:
-            print "" # an empty line
-            print e.output,
+            print("") # an empty line
+            print(e.output, end=' ')
             # Nirvana: pretty-print bibtex errors ?
             raise BibtexError
         
         if "Warning--" in bibtex_output:
             # just repeat what bibtex said.
-            print bibtex_output,
+            print(bibtex_output, end=' ')
             # Nirvana: pretty-print bibtex warnings ?
 
 
@@ -296,13 +296,13 @@ def tracker_print_warning(text):
     """Prints either `text', `file:line text', or text (page n), etc."""
     global tracker_print_all_filenames
     if tracker_print_all_filenames or (tracker_get_current_file() != "./"+jobname+".tex"):
-        print "in file %s:"%tracker_get_current_file(),
+        print("in file %s:"%tracker_get_current_file(), end=' ')
         tracker_print_all_filenames = True
     if tracker_current_pagenum > tracker_max_pagenum:
         # page number is obviously wrong => unhelpful => skip it
-        print text
+        print(text)
     else:
-        print text + " (page %d)" % tracker_current_pagenum
+        print(text + " (page %d)" % tracker_current_pagenum)
 
 #####################################################################
 # Warning pretty-print
@@ -379,14 +379,14 @@ def changedfiles(oldsnapshot, newsnapshot):
     for filename in newsnapshot:
         if filename not in oldsnapshot:
             yield filename
-        elif oldsnapshot[filename] <> newsnapshot[filename]:
+        elif oldsnapshot[filename] != newsnapshot[filename]:
             yield filename
 
 # note: each of the functions we call here will raise an exception if
 # something goes wrong -> no need for explicit error-checking
 def latex_full_build():
     before=snapshot()
-    print "compiling %s..." % (jobname+'.tex')
+    print("compiling %s..." % (jobname+'.tex'))
     run_pdflatex() # if errors, will print them before raising exception
     after=snapshot()
 
@@ -396,15 +396,15 @@ def latex_full_build():
 
     # We recompile the latex document stubbornly until all the
     # auxiliary files (ie .aux .log etc) reach a fixpoint.
-    while before <> after:
+    while before != after:
         for filename in changedfiles(before, after):
             # print "file changed:", filename
             if filename == jobname+".glo": # cf #38 and #39
-                print "running makeglossaries on %s..." % jobname
+                print("running makeglossaries on %s..." % jobname)
                 subprocess.check_output(["makeglossaries",jobname])
             
         before=snapshot()
-        print "recompiling %s..." % (jobname+'.tex')
+        print("recompiling %s..." % (jobname+'.tex'))
         run_pdflatex() 
         after=snapshot()
     
@@ -429,7 +429,7 @@ if __name__ == '__main__':
     jobname=options.filename
     if not os.path.exists(jobname+'.tex'): jobname=jobname.replace('.tex','')
     if not os.path.exists(jobname+'.tex'): 
-        print argparser.prog+": cannot find file '"+options.filename+"'"
+        print(argparser.prog+": cannot find file '"+options.filename+"'")
         sys.exit(1)
 
     # run-once-only mode
@@ -447,7 +447,7 @@ if __name__ == '__main__':
     except (LatexCompileError,BibtexError):
         pass
     except KeyboardInterrupt:
-        print# newline after ^C to look good
+        print()# newline after ^C to look good
         sys.exit(0)
     
     while True:
@@ -455,7 +455,7 @@ if __name__ == '__main__':
         try:
             time.sleep(1)
         except KeyboardInterrupt:
-            print# newline after ^C to look good
+            print()# newline after ^C to look good
             sys.exit(0)
 
         last_compile_time=os.path.getmtime(jobname+".log")
@@ -478,5 +478,5 @@ if __name__ == '__main__':
             # print 70*'='
             time.sleep(1)
         except KeyboardInterrupt:
-            print# newline after ^C to look good
+            print()# newline after ^C to look good
             sys.exit(0)
