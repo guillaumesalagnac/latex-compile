@@ -1,4 +1,33 @@
-\documentclass[notes=only]{beamer}
+
+\documentclass[tikz]{standalone}
+\usetikzlibrary{fadings}
+\begin{document}
+\end{document}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 2019
+
+% The current version of beamer complains about the `notes` class option:
+%
+%     compiling doc.tex...
+%     in file /opt/local/share/texmf-texlive/tex/latex/beamer/beamer.cls:
+%       Class beamer Warning: This option is obsolete. Use beamer option
+%      ``show only notes'' instead. on input line 336.
+%
+% However, if I indeed change the options, the document compiles just
+% fine, which breaks my test-case.
+%
+% The new document above is an alternate approach to trigger the
+% original pdftex error.
+% https://tug.org/pipermail/tex-live/2017-April/040035.html
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 2018
+
+% \documentclass[show only notes]{beamer}
+\documentclass[notes]{beamer}
 
 \setbeamertemplate{blocks}[rounded][shadow=true]
 
@@ -12,14 +41,13 @@
 
 \end{document}
 
+
 For some reason, this document causes a pdftex warning to be issued at
 the very end of the compilation process (also cf .log):
 
     No pages of output.
     
     pdfTeX warning: pdflatex: dangling objects discarded, no output file produced.
-
-
 
 The problem with  latex-compile lies in the  page/file tracking logic:
 once the  final parenthesis (of  the .log output) has  been processed,
