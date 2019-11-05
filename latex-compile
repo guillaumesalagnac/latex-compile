@@ -30,7 +30,7 @@ def run_pdflatex():
         )
         return 
     except subprocess.CalledProcessError as e:
-        log=e.output.decode('ascii',errors='replace').splitlines()
+        log=e.output.decode('ascii', errors='replace').splitlines()
     
     acc=""
     prefix=None
@@ -120,7 +120,7 @@ def run_pdflatex():
     raise LatexCompileError # notify caller of compile error
 
 def bibtex_needed(old_aux,new_aux):
-    log=open( jobname+".log" ).read()
+    log=open( jobname+".log",errors='replace').read() #52
     
     if "No file "+jobname+".bbl" in log:
         # print "bibtex is needed because no file "+jobname+".bbl"
@@ -211,7 +211,7 @@ class PageFileTracker():
 
         # guess maximum page number
         self.max_pagenum=0
-        for line in open( jobname+".log" ):
+        for line in open( jobname+".log",errors='replace'): #52
             if "Output written on "+jobname+".pdf" in line:
                 self.max_pagenum=int(line.split('(')[1].split()[0])
         
@@ -309,7 +309,7 @@ class WarningParser():
         elif re_warning.match(line): # Class and package warnings
             m   = re_warning.match(line)
             pkg = m.groupdict()["pkg"]
-            self.prefix = ("(%s)" % pkg).ljust(m.start("text")) # guess the prefix. BUT: can be wrong, cf #52
+            self.prefix = ("(%s)" % pkg).ljust(m.start("text")) # guess the prefix. BUT: can be wrong, cf #27
             self.text=line
 
         elif line.startswith('LaTeX Warning: '): # cf #05, #09, #13, #17, #27...
@@ -324,14 +324,14 @@ class WarningParser():
             if options.nobadboxes is False:
                 self.printer.print(line) # bad boxes are always single-line
 
-        elif len(self.text)>0: # we are in the middle of a non-prefixed warning e.g. #52
+        elif len(self.text)>0: # we are in the middle of a non-prefixed warning e.g. #27
             self.text += ' '+line.strip()
 
 def print_warnings():
     tracker=PageFileTracker()
     wp = WarningParser(tracker)
     acc=''
-    for line in open( jobname+".log" ).read().splitlines():
+    for line in open( jobname+".log",errors='replace').read().splitlines():
         
         # TeX breaks outputs at 79 characters. here we rejoin the fragments
         if len(line)==79:
@@ -407,7 +407,7 @@ if __name__ == '__main__':
     # option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--version', help='print version information and exit',action="version",
-                           version='%(prog)s 2019-10-31')
+                           version='%(prog)s 2019-11-05')
     argparser.add_argument('-l','--loop', help='loop-forever mode',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('filename',metavar='FILENAME', help='your latex file')
