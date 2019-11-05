@@ -8,6 +8,7 @@ doc.bbl
 doc.blg
 doc.synctex.gz
 doc.synctex.gz(busy)
+doc.synctex(busy)
 doc.run.xml
 doc-blx.bib
 doc.toc
