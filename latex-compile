@@ -19,7 +19,7 @@ def run_pdflatex():
     In case of error, pretty-print the error message and raise a LatexCompileError."""
         
     try:
-        subprocess.check_output(["pdflatex",
+        subprocess.check_output([options.engine,
                                  "-halt-on-error",
                                  "-file-line-error",
                                  "-synctex=1",
@@ -407,9 +407,10 @@ if __name__ == '__main__':
     # option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--version', help='print version information and exit',action="version",
-                           version='%(prog)s 2019-11-05')
+                           version='%(prog)s 2019-11-15')
     argparser.add_argument('-l','--loop', help='loop-forever mode',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
+    argparser.add_argument('--engine',help='compile with this program instead of pdflatex',default="pdflatex")
     argparser.add_argument('filename',metavar='FILENAME', help='your latex file')
     options=argparser.parse_args()
 
