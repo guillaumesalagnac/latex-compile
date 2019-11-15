@@ -398,6 +398,30 @@ def latex_full_build():
     
     print_warnings()
 
+
+#####################################################################
+# Automated software update
+
+def selfupdate():
+    import urllib.request
+    try:
+        urllib.request.urlretrieve('https://raw.githubusercontent.com/guillaumesalagnac/latex-compile/master/latex-compile',
+                                   filename="/tmp/latex-compile")
+    except urllib.error.URLError as error:
+        print("Network error:",error)
+        return
+    old_ver = subprocess.check_output(["python3",sys.argv[0]         ,"--version"]).decode('ascii').rstrip().split()[1]
+    new_ver = subprocess.check_output(["python3","/tmp/latex-compile","--version"]).decode('ascii').rstrip().split()[1]
+
+    if old_ver == new_ver:
+        print("Already up to date: "+old_ver)
+        return
+    if old_ver < new_ver:
+        os.replace("/tmp/latex-compile", sys.argv[0])
+        os.chmod(sys.argv[0], 0o755)
+        print("Updated to newer version: "+old_ver+" -> "+new_ver)
+        return
+
 #####################################################################
 # Conmmand-line Interface
 
@@ -411,7 +435,13 @@ if __name__ == '__main__':
     argparser.add_argument('-l','--loop', help='loop-forever mode',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('--engine',help='compile with this program instead of pdflatex',default="pdflatex")
+    argparser.add_argument('--selfupdate',help='download most recent version from github',action="store_true")
     argparser.add_argument('filename',metavar='FILENAME', help='your latex file')
+
+    if "--selfupdate" in sys.argv: # not via argparse, so that FILENAME is not required
+        selfupdate()
+        sys.exit(0)
+
     options=argparser.parse_args()
 
     # argument parsing
