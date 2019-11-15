@@ -13,7 +13,7 @@ def try_remove(filename):
 suffixes=['aux', 'bcf', 'bbl', 'blg', 'brf', 'dvi', 'fls',
           'fdb_latexmk', 'log','maf', 'mtc', 'mtc0', 'nav', 'out',
           'ps', 'pdf', 'pdfsync', 'pyg', 'run.xml', 'snm',
-          'synctex.gz', 'synctex.gz(busy)', 'tex~', 'bib~', 'snm',
+          'synctex.gz', 'synctex(busy)', 'tex~', 'bib~', 'snm',
           'toc', 'vrb',
           'glg','glo','gls','ist',# glossaries.sty
           'ilg','ind','xdy',#xindy
