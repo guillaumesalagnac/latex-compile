@@ -432,7 +432,7 @@ if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--version', help='print version information and exit',action="version",
                            version='%(prog)s 2019-11-15')
-    argparser.add_argument('-l','--loop', help='loop-forever mode',action="store_true")
+    argparser.add_argument('-l','--loop', help='interactive mode: loop forever, recompile when needed',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('--engine',help='compile with this program instead of pdflatex',default="pdflatex")
     argparser.add_argument('--selfupdate',help='download most recent version from github',action="store_true")
@@ -451,51 +451,45 @@ if __name__ == '__main__':
         print(argparser.prog+": cannot find file '"+options.filename+"'")
         sys.exit(1)
 
-    # run-once-only mode
+    # run-once mode
     if not options.loop:
         try:
             latex_full_build()
         except (LatexCompileError,BibtexError):
             sys.exit(1)
+        except KeyboardInterrupt:
+            print()# newline after ^C to look good
+            sys.exit(1)
         else:
             sys.exit(0)
 
-    # run-forever mode
-    try:
-        latex_full_build()
-    except (LatexCompileError,BibtexError):
-        pass
-    except KeyboardInterrupt:
-        print()# newline after ^C to look good
-        sys.exit(0)
-    
+    # interactive mode
     while True:
-
-        try:
-            time.sleep(1)
-        except KeyboardInterrupt:
-            print()# newline after ^C to look good
-            sys.exit(0)
-
-        last_compile_time=os.path.getmtime(jobname+".log")
-
-        must_recompile=False
-        for (dirpath,subdirs,filenames) in os.walk("."):
-            for filename in filenames:
-                filepath=dirpath+"/"+filename
-                if not os.path.isfile(filepath): continue 
-                if os.path.getmtime(filepath) > last_compile_time:
-                    # print "recent file:", filepath
-                    must_recompile=True
-                    
-        if not must_recompile:
-            continue
-
         try:
             latex_full_build()
         except (LatexCompileError,BibtexError):
-            # print 70*'='
-            time.sleep(1)
+            pass
         except KeyboardInterrupt:
             print()# newline after ^C to look good
             sys.exit(0)
+    
+        last_compile_time=os.path.getmtime(jobname+".log")
+
+        def wait_for_change():
+            while True:
+                time.sleep(1)
+                for (dirpath,subdirs,filenames) in os.walk("."):
+                    for filename in filenames:
+                        filepath=dirpath+"/"+filename
+                        if not os.path.isfile(filepath):
+                            continue 
+                        if os.path.getmtime(filepath) > last_compile_time:
+                            # print("recent file:", filepath)
+                            return
+
+        try:
+            wait_for_change()
+        except KeyboardInterrupt:
+            print()# newline after ^C to look good
+            sys.exit(0)
+
