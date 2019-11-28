@@ -55,6 +55,9 @@ def run_pdflatex():
         if "LaTeX Error:" in line: # cf #07
             break
 
+        if "Runaway argument" in line: # cf #54
+            break
+
         if re_package_error.match(line):
             m=re_package_error.match(line)
             prefix = "(%s)" % m.groupdict()["pkg"]
@@ -107,6 +110,10 @@ def run_pdflatex():
         # suppress interactive querying for all extensions (.sty and others)
         if "or enter new name. (Default extension:" in detail:
             continue
+
+        # sometimes there is no offending line to be reached cf #54
+        if 'Runaway argument' in line and '<inserted text>' in detail:
+            break
 
         print(detail)
 
@@ -431,7 +438,7 @@ if __name__ == '__main__':
     # option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--version', help='print version information and exit',action="version",
-                           version='%(prog)s 2019-11-15')
+                           version='%(prog)s 2019-11-28')
     argparser.add_argument('-l','--loop', help='interactive mode: loop forever, recompile when needed',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('--engine',help='compile with this program instead of pdflatex',default="pdflatex")
