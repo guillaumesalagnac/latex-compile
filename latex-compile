@@ -155,8 +155,8 @@ def bibtex_needed(old_aux,new_aux):
     if old_aux is None:
         old_aux=""
         
-    old_aux = old_aux.decode('ascii')
-    new_aux = new_aux.decode('ascii')
+    old_aux = old_aux.decode('ascii',errors='ignore')
+    new_aux = new_aux.decode('ascii',errors='ignore')
         
     old_citations = [ line[10:-1] for line in old_aux.splitlines() if line[:10] == r'\citation{' ]
     new_citations = [ line[10:-1] for line in new_aux.splitlines() if line[:10] == r'\citation{' ]
@@ -438,7 +438,7 @@ if __name__ == '__main__':
     # option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--version', help='print version information and exit',action="version",
-                           version='%(prog)s 2019-11-28')
+                           version='%(prog)s 2020-02-11')
     argparser.add_argument('-l','--loop', help='interactive mode: loop forever, recompile when needed',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('--engine',help='compile with this program instead of pdflatex',default="pdflatex")
