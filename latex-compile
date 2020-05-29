@@ -198,6 +198,28 @@ def run_bibtex():
             print(bibtex_output[:-1])
             # Nirvana: pretty-print bibtex warnings ?
 
+def run_biber():
+        print("running Biber on %s..." % jobname)
+    
+        # design  note: I  decide to  abort  the build  process on  bibtex
+        # errors, but to proceed on warnings
+        #
+        # and anyway, we remain silent if no errors nor warnings
+    
+        bibtex_output=None
+        try:
+            bibtex_output=subprocess.check_output(["biber",jobname]).decode('ascii')
+        except subprocess.CalledProcessError as e:
+            print("") # an empty line
+            print(e.output.decode('ascii')[:-1])
+            # Nirvana: pretty-print bibtex errors ?
+            raise BibtexError
+        
+        if "WARN -" in bibtex_output:
+            # just repeat what bibtex said.
+            print(bibtex_output[:-1])
+            # Nirvana: pretty-print bibtex warnings ?
+
 
 #####################################################################
 # Page and file tracking logic.
@@ -386,7 +408,10 @@ def latex_full_build():
     after=snapshot()
 
     if bibtex_needed(before[jobname+".aux"],after[jobname+".aux"]):
-        run_bibtex()
+        if biber:
+            run_biber()
+        else:
+            run_bibtex()
         after=snapshot() # bibtex may or may not require a recompilation (cf #45 #32)
 
     # We recompile the latex document stubbornly until all the
@@ -433,6 +458,7 @@ def selfupdate():
 # Conmmand-line Interface
 
 jobname=None
+biber=False
 if __name__ == '__main__':
 
     # option parsing
@@ -442,6 +468,7 @@ if __name__ == '__main__':
     argparser.add_argument('-l','--loop', help='interactive mode: loop forever, recompile when needed',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('--engine',help='compile with this program instead of pdflatex',default="pdflatex")
+    argparser.add_argument('--biber',help='compile bibliography using biber instead of bibtex',action="store_true")
     argparser.add_argument('--selfupdate',help='download most recent version from github',action="store_true")
     argparser.add_argument('filename',metavar='FILENAME', help='your latex file')
 
@@ -453,6 +480,7 @@ if __name__ == '__main__':
 
     # argument parsing
     jobname=options.filename
+    biber=options.biber
     if not os.path.exists(jobname+'.tex'): jobname=jobname.replace('.tex','')
     if not os.path.exists(jobname+'.tex'): 
         print(argparser.prog+": cannot find file '"+options.filename+"'")
