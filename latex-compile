@@ -252,13 +252,13 @@ class PageFileTracker():
         # parentheses are  followed by a pathname,  so we push these  on a
         # pathname stack.
         while line:
-            if line[0] is ')':
+            if line[0] == ')':
                 try:
                     self.opened_files.pop()
                 except: # this is a workaround for #51
                     pass
 
-            if line[0] is '(':
+            if line[0] == '(':
                 suffix=line[1:]
 
                 # if suffix does not even look like a pathname, let's not bother walking it
@@ -438,7 +438,7 @@ if __name__ == '__main__':
     # option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--version', help='print version information and exit',action="version",
-                           version='%(prog)s 2020-02-11')
+                           version='%(prog)s 2020-09-15')
     argparser.add_argument('-l','--loop', help='interactive mode: loop forever, recompile when needed',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('--engine',help='compile with this program instead of pdflatex',default="pdflatex")
