@@ -7,7 +7,7 @@ compile: transcript.txt
 
 transcript.txt:
 	-@latex-compile doc.tex > transcript.txt ; true
-	@python2 -c 'print 20*"="' >> transcript.txt
+	@python3 -c 'print(20*"=")' >> transcript.txt
 	-@latex-compile doc.tex >> transcript.txt ; true 
 
 test: clean diff
