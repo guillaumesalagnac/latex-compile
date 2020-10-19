@@ -57,7 +57,7 @@ accept: transcript.txt
 # Cleanup
 
 clean:
-	@rm -f doc.{aux,bbl,blg,log,pdf,synctex.gz,toc,run.xml} 
+	@rm -f doc.{aux,bbl,blg,fls,log,pdf,synctex.gz,toc,run.xml} 
 	@rm -f doc.{glg,glo,gls,ist}
 	@rm -f doc-blx.bib transcript.txt
 

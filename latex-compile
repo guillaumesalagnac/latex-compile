@@ -23,6 +23,7 @@ def run_pdflatex():
                                  "-halt-on-error",
                                  "-file-line-error",
                                  "-synctex=1",
+                                 "-recorder",
                                  "-shell-escape",
                                  "-interaction=nonstopmode",
                                  jobname],
@@ -126,23 +127,23 @@ def run_pdflatex():
     
     raise LatexCompileError # notify caller of compile error
 
-def bibtex_needed(old_aux,new_aux):
-    log=open( jobname+".log",errors='replace').read() #52
+def bibtex_needed(oldsnapshot,newsnapshot):
+    log=readfile(jobname+".log")  #52
     
     if "No file "+jobname+".bbl" in log:
-        # print "bibtex is needed because no file "+jobname+".bbl"
+        # print("bibtex is needed because no file "+jobname+".bbl")
         return True # test-cases #03, #15...
              
     if ( os.path.isfile(jobname+".bbl") and # test-case #15
         ("LaTeX Warning: Citation " in log)): # test-case #22
-        # print "bibtex is needed because Citation undefined"
+        # print("bibtex is needed because Citation undefined")
         return True
 
     # design note: we rerun bibtex even if there were only warnings,
     # so as to annoy the user, hoping for them to correct their .bib
     # files :-)
     if os.path.isfile(jobname+".blg"):
-        blg=open( jobname+".blg" ).read()
+        blg=readfile( jobname+".blg" )
         if "error message" in blg: return True # test-case #31
         if "Warning--" in blg: return True # test-case #32
 
@@ -151,27 +152,28 @@ def bibtex_needed(old_aux,new_aux):
     if not os.path.isfile(jobname+".bbl") and not os.path.isfile(jobname+".blg"):
         return False
 
-    # on a fresh document, the aux file doesn't exist before the first pass
-    if old_aux is None:
-        old_aux=""
-        
-    old_aux = old_aux.decode('ascii',errors='ignore')
-    new_aux = new_aux.decode('ascii',errors='ignore')
-        
-    old_citations = [ line[10:-1] for line in old_aux.splitlines() if line[:10] == r'\citation{' ]
-    new_citations = [ line[10:-1] for line in new_aux.splitlines() if line[:10] == r'\citation{' ]
+    if jobname+'.aux' in oldsnapshot and oldsnapshot[jobname+'.aux'] is not None:
+        old_citations = [ line[10:-1] for line in oldsnapshot[jobname+'.aux'].splitlines() if line[:10] == r'\citation{' ]
+    else:
+        old_citations = set()
+
+    if jobname+'.aux' in newsnapshot and newsnapshot[jobname+'.aux'] is not None:
+        new_citations = [ line[10:-1] for line in newsnapshot[jobname+'.aux'].splitlines() if line[:10] == r'\citation{' ]
+    else:
+        new_citations = set()
 
     # compare both sets to detect new or removed citations (cf #22 #40)
     if set(old_citations) != set(new_citations):
-        # print "bibtex is needed because some citations have added or removed"
+        # print("bibtex is needed because some citations have added or removed")
         return True
 
     if os.path.isfile(jobname+".blg"): # cf test-case #49
         last_bibtex_time = os.path.getmtime(jobname+".blg")
-        bibnames=[ line[18:].strip() for line in open( jobname+".blg" ).readlines() if 'Database file' in line ]
+        bibnames=[ line[18:].strip() for line in readfile(jobname+".blg",True) if 'Database file' in line ]
         for bibname in bibnames: # iterate over all bibtex files, cf test-case #50
             if '-blx.bib' in bibname: continue # irrelevant because this one is biblatex-generated
             if os.path.getmtime(bibname) >= last_bibtex_time:
+                # print("bibtex is needed because "+bibname+" is more recent that "+jobname+".blg")
                 return True
 
     return False
@@ -190,14 +192,11 @@ def run_bibtex():
         except subprocess.CalledProcessError as e:
             print("") # an empty line
             print(e.output.decode('ascii')[:-1])
-            # Nirvana: pretty-print bibtex errors ?
             raise BibtexError
         
         if "Warning--" in bibtex_output:
             # just repeat what bibtex said.
             print(bibtex_output[:-1])
-            # Nirvana: pretty-print bibtex warnings ?
-
 
 #####################################################################
 # Page and file tracking logic.
@@ -218,7 +217,7 @@ class PageFileTracker():
 
         # guess maximum page number
         self.max_pagenum=0
-        for line in open( jobname+".log",errors='replace'): #52
+        for line in readfile(jobname+".log",True): #52
             if "Output written on "+jobname+".pdf" in line:
                 self.max_pagenum=int(line.split('(')[1].split()[0])
         
@@ -338,7 +337,7 @@ def print_warnings():
     tracker=PageFileTracker()
     wp = WarningParser(tracker)
     acc=''
-    for line in open( jobname+".log",errors='replace').read().splitlines():
+    for line in readfile(jobname+".log",True):
         
         # TeX breaks outputs at 79 characters. here we rejoin the fragments
         if len(line)==79:
@@ -355,28 +354,58 @@ def print_warnings():
 
 #####################################################################
 # Main compilation stuff
-            
-def snapshot():
-    """Take a 'snapshot' of known auxiliary files.
-Returns a dictionary where keys are file names and values are file contents."""
 
-    suffixes =  [".aux",".glo",".bbl",".blg"]
+def readfile(filename, splitlines=False):
+    """read a file and return its contents as a text string"""
+
+    if not os.path.isfile(filename):
+        return None
+
+    data = open(filename,"rb").read()
+    text = data.decode('ascii',errors='ignore')
+
+    return text.splitlines() if splitlines else text
+
+def snapshot():
+    """Return a dictionary with input filenames as keys and file contents as values"""
+    
+    fls=readfile(jobname+'.fls')
+    if fls is None:
+        return dict()
+        
     snapshot=dict()
-    for filename in [ jobname + suffix for suffix in suffixes]:
-        if os.path.exists(filename):
-           snapshot[filename]=open(filename,"rb").read()
-        else:
-            snapshot[filename]=None
+    for line in fls.splitlines():
+        if line[:5]== 'INPUT':
+            filename=line[6:]
+            # short-cut: let's skip absolute paths (probably files from tex distro)
+            if filename[0] != '/':
+                snapshot[filename]=readfile(filename)
+        if line[:6]== 'OUTPUT':
+            filename=line[7:]
+            snapshot[filename]=readfile(filename)
+
+    for suffix in  [
+            '.pdf',      # timestamped
+            '.log',      # timestamped
+            '.run.xml',  # useless ?
+            '-blx.bib',  # useless ?
+    ]:
+        for filename in set(snapshot.keys()):
+            if filename.endswith(suffix):
+                # print("ignoring change in file:",filename)
+                del snapshot[filename]
+        
     return snapshot
 
 def changedfiles(oldsnapshot, newsnapshot):
     """Compare the two snapshots and return an iterator with all the filenames that differ"""
-    for filename in newsnapshot:
-        if filename not in oldsnapshot:
+    for filename in set(oldsnapshot).symmetric_difference(newsnapshot):
+        yield filename
+    for filename in set(oldsnapshot).intersection(set(newsnapshot)):
+        if oldsnapshot[filename] != newsnapshot[filename]:
+            # print("file contents changed:",oldsnapshot[filename],newsnapshot[filename])
             yield filename
-        elif oldsnapshot[filename] != newsnapshot[filename]:
-            yield filename
-
+    
 # note: each of the functions we call here will raise an exception if
 # something goes wrong -> no need for explicit error-checking
 def latex_full_build():
@@ -384,8 +413,8 @@ def latex_full_build():
     print("compiling %s..." % (jobname+'.tex'))
     run_pdflatex() # if errors, will print them before raising exception
     after=snapshot()
-
-    if bibtex_needed(before[jobname+".aux"],after[jobname+".aux"]):
+    
+    if bibtex_needed(before,after):
         run_bibtex()
         after=snapshot() # bibtex may or may not require a recompilation (cf #45 #32)
 
@@ -393,11 +422,10 @@ def latex_full_build():
     # auxiliary files (ie .aux .log etc) reach a fixpoint.
     while before != after:
         for filename in changedfiles(before, after):
-            # print "file changed:", filename
+            # print("changed file:", filename)
             if filename == jobname+".glo": # cf #38 and #39
                 print("running makeglossaries on %s..." % jobname)
                 subprocess.check_output(["makeglossaries",jobname])
-            
         before=snapshot()
         print("recompiling %s..." % (jobname+'.tex'))
         run_pdflatex() 

@@ -1,0 +1,24 @@
+\documentclass{article}
+
+\usepackage{silence}
+\WarningFilter{biblatex}{Using fall-back BibTeX}
+
+\usepackage[
+backend=bibtex,
+style=alphabetic,
+]{biblatex}
+\bibliography{doc}
+
+\begin{document}
+
+Latex-compile should not crash in the user's face.
+
+Even when the \texttt{.aux} file is \emph{removed} between two compilations.
+
+\bigskip
+\cite{key}
+\bigskip
+
+\printbibliography
+
+\end{document}
