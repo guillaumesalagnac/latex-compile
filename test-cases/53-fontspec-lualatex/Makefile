@@ -7,7 +7,7 @@ transcript.txt:
 
 test: clean diff
 
-learn diff ref explain: transcript.txt
+accept learn diff ref explain: transcript.txt
 	@make -f ../Makefile.common $@
 
 clean:

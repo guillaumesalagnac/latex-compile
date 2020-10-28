@@ -9,9 +9,10 @@ default: test
 test: clean diff
 
 transcript.txt:
-	-@echo no option: > transcript.txt ; true
+	-@echo test: invoking latex-compile with no option > transcript.txt ; true
 	-@latex-compile doc.tex >> transcript.txt ; true
-	-@echo --nobadboxes option: >> transcript.txt ; true
+	@python3 -c 'print(20*"-")' >> transcript.txt
+	-@echo test: invoking latex-compile with --nobadboxes option >> transcript.txt ; true
 	-@latex-compile --nobadboxes doc.tex >> transcript.txt ; true
 
 diff: ref/transcript.txt transcript.txt

@@ -7,18 +7,19 @@ default: test
 compile: transcript.txt
 
 transcript.txt:
-	@echo building document with only one citation > transcript.txt
+	@echo test: building document with only one citation > transcript.txt
 	@cat doc.in.tex | sed 's/.*key2.*//' > doc.tex
 	-@latex-compile doc.tex >> transcript.txt ; true
-	@echo counting lines in the .bbl':' $$(cat doc.bbl | wc -l)>> transcript.txt
-	@echo rebuilding document with a second citation added >> transcript.txt
+	@echo test: counting lines in the .bbl':' $$(cat doc.bbl | wc -l)>> transcript.txt
+	@python3 -c 'print(10*"-")' >> transcript.txt
+	@echo test: rebuilding document with a second citation added >> transcript.txt
 	@cat doc.in.tex | sed 's/.*key2.*/\\cite{key2}/' > doc.tex
 	-@latex-compile doc.tex >> transcript.txt ; true 
-	@echo counting lines in the .bbl':' $$(cat doc.bbl | wc -l)>> transcript.txt
+	@echo test: counting lines in the .bbl':' $$(cat doc.bbl | wc -l)>> transcript.txt
 
 test: clean diff
 
-learn diff ref explain: transcript.txt
+accept learn diff ref explain: transcript.txt
 	@make -f ../Makefile.common $@
 
 clean:

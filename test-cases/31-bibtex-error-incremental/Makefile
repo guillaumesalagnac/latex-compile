@@ -8,7 +8,7 @@ compile: transcript.txt
 
 transcript.txt:
 	-@latex-compile doc.tex > transcript.txt ; true
-	@python3 -c 'print(10*"=")' >> transcript.txt
+	@python3 -c 'print(10*"-")' >> transcript.txt
 	-@latex-compile doc.tex >> transcript.txt ; true 
 
 test: clean diff
