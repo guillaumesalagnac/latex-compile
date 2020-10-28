@@ -10,13 +10,12 @@ re_warning = re.compile("(Package|Class)( (?P<pkg>.*)) Warning: (?P<text>.*)$")
 
 re_package_error = re.compile(".*Package (?P<pkg>.*) Error: .*$")
 
-class LatexCompileError(Exception): pass
-class BibtexError(Exception): pass
+class RunCommandError(Exception): pass
 
 def run_pdflatex():
     """Run pdflatex on jobname.
     In case of success, return silently.
-    In case of error, pretty-print the error message and raise a LatexCompileError."""
+    In case of error, pretty-print the error message and raise a RunCommandError."""
         
     try:
         subprocess.check_output([options.engine,
@@ -35,15 +34,7 @@ def run_pdflatex():
     
     acc=""
     prefix=None
-    for line in log:
-
-        # TeX breaks outputs at 79 characters. here we rejoin the fragments
-        if len(line)==79:
-            acc+=line
-            continue
-        elif acc:
-            line=acc+line
-            acc=""
+    for line in unbreak79(log):
 
         # long error logic. cf #14 #37
         if prefix is not None:
@@ -75,7 +66,7 @@ def run_pdflatex():
         print("...")
         print("\n".join( log[-10:] )) # cf #33
 
-        raise LatexCompileError # notify caller of compile error
+        raise RunCommandError # notify caller of compile error
 
     # 1) display the (pretty-printed) main error message
     print(line)
@@ -87,7 +78,7 @@ def run_pdflatex():
     except ValueError:
         # Note: this happens for instance in test-cases #16, which I
         # don't want to write specific logic for. take that, fancyvrb.
-        raise LatexCompileError #notify caller of compile error
+        raise RunCommandError #notify caller of compile error
     
     for detail in log[i:]:
         if detail.strip() in line:
@@ -125,19 +116,15 @@ def run_pdflatex():
                 print(log[j+1])
             break    
     
-    raise LatexCompileError # notify caller of compile error
+    raise RunCommandError # notify caller of compile error
 
-def bibtex_needed(oldsnapshot,newsnapshot):
+def bibtex_needed(old_aux):
+    """Guess whether we need to run bibtex"""
     log=readfile(jobname+".log")  #52
     
     if "No file "+jobname+".bbl" in log:
         # print("bibtex is needed because no file "+jobname+".bbl")
         return True # test-cases #03, #15...
-             
-    if ( os.path.isfile(jobname+".bbl") and # test-case #15
-        ("LaTeX Warning: Citation " in log)): # test-case #22
-        # print("bibtex is needed because Citation undefined")
-        return True
 
     # design note: we rerun bibtex even if there were only warnings,
     # so as to annoy the user, hoping for them to correct their .bib
@@ -152,15 +139,12 @@ def bibtex_needed(oldsnapshot,newsnapshot):
     if not os.path.isfile(jobname+".bbl") and not os.path.isfile(jobname+".blg"):
         return False
 
-    if jobname+'.aux' in oldsnapshot and oldsnapshot[jobname+'.aux'] is not None:
-        old_citations = [ line[10:-1] for line in oldsnapshot[jobname+'.aux'].splitlines() if line[:10] == r'\citation{' ]
+    if old_aux:
+        old_citations = [ line[10:-1] for line in old_aux.splitlines() if line[:10] == r'\citation{' ]
     else:
         old_citations = set()
-
-    if jobname+'.aux' in newsnapshot and newsnapshot[jobname+'.aux'] is not None:
-        new_citations = [ line[10:-1] for line in newsnapshot[jobname+'.aux'].splitlines() if line[:10] == r'\citation{' ]
-    else:
-        new_citations = set()
+    
+    new_citations = [ line[10:-1] for line in readfile(jobname+'.aux').splitlines() if line[:10] == r'\citation{' ]
 
     # compare both sets to detect new or removed citations (cf #22 #40)
     if set(old_citations) != set(new_citations):
@@ -177,27 +161,7 @@ def bibtex_needed(oldsnapshot,newsnapshot):
                 return True
 
     return False
-
-def run_bibtex():
-        print("running BibTeX on %s..." % jobname)
-    
-        # design  note: I  decide to  abort  the build  process on  bibtex
-        # errors, but to proceed on warnings
-        #
-        # and anyway, we remain silent if no errors nor warnings
-    
-        bibtex_output=None
-        try:
-            bibtex_output=subprocess.check_output(["bibtex",jobname]).decode('ascii')
-        except subprocess.CalledProcessError as e:
-            print("") # an empty line
-            print(e.output.decode('ascii')[:-1])
-            raise BibtexError
         
-        if "Warning--" in bibtex_output:
-            # just repeat what bibtex said.
-            print(bibtex_output[:-1])
-
 #####################################################################
 # Page and file tracking logic.
 #
@@ -333,27 +297,18 @@ class WarningParser():
         elif len(self.text)>0: # we are in the middle of a non-prefixed warning e.g. #27
             self.text += ' '+line.strip()
 
-def print_warnings():
-    tracker=PageFileTracker()
-    wp = WarningParser(tracker)
-    acc=''
-    for line in readfile(jobname+".log",True):
-        
-        # TeX breaks outputs at 79 characters. here we rejoin the fragments
-        if len(line)==79:
-            acc+=line
-            continue
-        elif acc:
-            line=acc+line
-            acc=""
-
-        tracker.update_page(line)
-        tracker.update_currentfile(line) 
-
-        wp.parse(line)
-
 #####################################################################
-# Main compilation stuff
+# Utility functions, mostly to help with rerun-until-fixpoint
+            
+def unbreak79(sequence):
+    # TeX breaks its output at 79 characters. here we rejoin the fragments
+    acc=''
+    for fragment in sequence:
+        if len(fragment)==79:
+            acc+=fragment
+            continue
+        yield acc+fragment
+        acc=''
 
 def readfile(filename, splitlines=False):
     """read a file and return its contents as a text string"""
@@ -366,73 +321,116 @@ def readfile(filename, splitlines=False):
 
     return text.splitlines() if splitlines else text
 
+# The global variable 'onchange' is a dictionnary.
+# We monitor the contents of these files before/after each latex compilation.
+# When a change is detected:
+# - if a shell command is given, then execute it.
+# - otherwise (i.e. 'None') just trigger a latex rerun
+onchange=dict()
+
 def snapshot():
-    """Return a dictionary with input filenames as keys and file contents as values"""
-    
-    fls=readfile(jobname+'.fls')
+    """Return a dict where keys are names of 'relevant' files, and values are asciified contents of these files (or None if file does not exist)"""
+
+    global onchange
+    if not onchange:
+        onchange = {
+            jobname+'.aux': None,
+            jobname+'.toc': None, # table of contents
+            jobname+'.gls': None, # glossaries.sty
+            jobname+'.glo': "makeglossaries "+jobname,
+        }
+
+    snapshot = dict()
+    for filename in onchange.keys():
+        snapshot[filename]=readfile(filename)
+
+    fls=readfile(jobname+'.fls',splitlines=True)
     if fls is None:
-        return dict()
-        
-    snapshot=dict()
-    for line in fls.splitlines():
-        if line[:5]== 'INPUT':
+        return snapshot
+    
+    for line in [ l for l in fls if l[:5]== 'INPUT' ]:
             filename=line[6:]
             # short-cut: let's skip absolute paths (probably files from tex distro)
             if filename[0] != '/':
                 snapshot[filename]=readfile(filename)
-        if line[:6]== 'OUTPUT':
-            filename=line[7:]
-            snapshot[filename]=readfile(filename)
-
-    for suffix in  [
-            '.pdf',      # timestamped
-            '.log',      # timestamped
-            '.run.xml',  # useless ?
-            '-blx.bib',  # useless ?
-    ]:
-        for filename in set(snapshot.keys()):
-            if filename.endswith(suffix):
-                # print("ignoring change in file:",filename)
-                del snapshot[filename]
         
     return snapshot
 
+def dict_hexdigest(some_dict, maxdigits=6):
+    # utility function, to help debugging fixpoint stuff
+    import hashlib
+    res=dict()
+    for key,value in some_dict.items():
+        hasher=hashlib.md5()
+        if value is not None:
+            hasher.update(value.encode())
+            res[key]=hasher.hexdigest()[:maxdigits]
+    return res
+            
 def changedfiles(oldsnapshot, newsnapshot):
-    """Compare the two snapshots and return an iterator with all the filenames that differ"""
+    """Compare the two snapshots and return an iterator with the names of the files that differ"""
     for filename in set(oldsnapshot).symmetric_difference(newsnapshot):
         yield filename
     for filename in set(oldsnapshot).intersection(set(newsnapshot)):
         if oldsnapshot[filename] != newsnapshot[filename]:
             # print("file contents changed:",oldsnapshot[filename],newsnapshot[filename])
             yield filename
-    
-# note: each of the functions we call here will raise an exception if
-# something goes wrong -> no need for explicit error-checking
+
+def run_commmand(commandline):
+    try:
+        output=subprocess.check_output(commandline,shell=True).decode('ascii')
+        return output
+    except subprocess.CalledProcessError as e:
+        print()
+        print(e.output.decode('ascii').strip())
+        raise RunCommandError
+
+#####################################################################
+# Latex full build. Rerun until we reach fixpoint
+            
 def latex_full_build():
+
+    ####################
+    # Perform first run: pdflatex, then (maybe) bibtex
     before=snapshot()
     print("compiling %s..." % (jobname+'.tex'))
     run_pdflatex() # if errors, will print them before raising exception
     after=snapshot()
-    
-    if bibtex_needed(before,after):
-        run_bibtex()
-        after=snapshot() # bibtex may or may not require a recompilation (cf #45 #32)
+    # print("before:",dict_hexdigest(before))
+    # print("after: ",dict_hexdigest(after))
+        
+    if bibtex_needed(before[jobname+'.aux']):
+        print("running BibTeX on %s..." % jobname)
+        bibtex_output=run_commmand("bibtex "+jobname)
+        if 'Warning--' in bibtex_output:
+            print(bibtex_output.strip())
+        after=snapshot() # trigger a rerun if bibtex changed the .bbl, cf #45
 
-    # We recompile the latex document stubbornly until all the
-    # auxiliary files (ie .aux .log etc) reach a fixpoint.
+    ####################
+    # Rerun until fixpoint
     while before != after:
-        for filename in changedfiles(before, after):
-            # print("changed file:", filename)
-            if filename == jobname+".glo": # cf #38 and #39
-                print("running makeglossaries on %s..." % jobname)
-                subprocess.check_output(["makeglossaries",jobname])
+        # print("before:",dict_hexdigest(before))
+        # print("after: ",dict_hexdigest(after))
+        for name in changedfiles(before, after):
+            if name in onchange and onchange[name] is not None:
+                print("onchange:", name,"->",onchange[name])
+                subprocess.check_output(onchange[name],shell=True)
+    
         before=snapshot()
         print("recompiling %s..." % (jobname+'.tex'))
         run_pdflatex() 
         after=snapshot()
-    
-    print_warnings()
 
+    ####################
+    # Print Warnings
+    tracker=PageFileTracker()
+    wp = WarningParser(tracker)
+    acc=''
+    for line in unbreak79(readfile(jobname+".log",True)):
+        tracker.update_page(line)
+        tracker.update_currentfile(line) 
+
+        wp.parse(line)
 
 #####################################################################
 # Automated software update
@@ -458,7 +456,7 @@ def selfupdate():
         return
 
 #####################################################################
-# Conmmand-line Interface
+# Command-line Interface
 
 jobname=None
 if __name__ == '__main__':
@@ -466,7 +464,7 @@ if __name__ == '__main__':
     # option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--version', help='print version information and exit',action="version",
-                           version='%(prog)s 2020-10-19')
+                           version='%(prog)s 2020-10-28')
     argparser.add_argument('-l','--loop', help='interactive mode: loop forever, recompile when needed',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('--engine',help='compile with this program instead of pdflatex',default="pdflatex")
@@ -486,44 +484,25 @@ if __name__ == '__main__':
         print(argparser.prog+": cannot find file '"+options.filename+"'")
         sys.exit(1)
 
-    # run-once mode
-    if not options.loop:
-        try:
-            latex_full_build()
-        except (LatexCompileError,BibtexError):
-            sys.exit(1)
-        except KeyboardInterrupt:
-            print()# newline after ^C to look good
-            sys.exit(1)
-        else:
-            sys.exit(0)
-
-    # interactive mode
     while True:
         try:
             latex_full_build()
-        except (LatexCompileError,BibtexError):
-            pass
+        except RunCommandError:
+            if not options.loop:
+                sys.exit(1)
         except KeyboardInterrupt:
             print()# newline after ^C to look good
             sys.exit(0)
-    
-        last_compile_time=os.path.getmtime(jobname+".log")
 
-        def wait_for_change():
+        if not options.loop:
+            sys.exit(0)
+
+        after_last_compile=snapshot()
+        try:
             while True:
                 time.sleep(1)
-                for (dirpath,subdirs,filenames) in os.walk("."):
-                    for filename in filenames:
-                        filepath=dirpath+"/"+filename
-                        if not os.path.isfile(filepath):
-                            continue 
-                        if os.path.getmtime(filepath) > last_compile_time:
-                            # print("recent file:", filepath)
-                            return
-
-        try:
-            wait_for_change()
+                if snapshot() != after_last_compile:
+                    break
         except KeyboardInterrupt:
             print()# newline after ^C to look good
             sys.exit(0)
