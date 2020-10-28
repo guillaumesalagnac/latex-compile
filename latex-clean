@@ -46,6 +46,9 @@ def do_clean():
     
     for filename in ['texput.log','missingfonts.log','missfont.log','.figanim-generated-files']:
         try_remove(filename)
+
+    for filename in glob.glob('pdflatex[0-9]*.fls'):
+        try_remove(filename)
         
     for filename in glob.glob('*.pdftex'):#+glob.glob('fig/*.pdftex'):
         fig=re.sub(r'(\+[0-9,]+)?\.pdftex','.fig',filename)
