@@ -1,40 +1,28 @@
 
-# Warning: no spaces allows in dirnames
+# Warning: no space allowed in these names
 DIRS=$(sort $(wildcard [0-9]*-*))
 
 default: test-all
-
 
 help:
 	@echo This is the test suite for latex-compile 
 	@echo useful targets: test-all and clean-all
 
-echo:
-	@echo ${DIRS}
-
-clean-all:
-	@echo cleaning $(words ${DIRS}) test-cases.
-	@for i in ${DIRS} ;\
-	do\
-	   echo cleaning $${i} ;\
-	   cd "$$i" && latex-clean && make clean && cd ..;\
-	done
-
-test-all-nocolor:
-	@echo running $(words ${DIRS}) test-cases. '(zero means "OK")'
-	@for i in ${DIRS} ;\
-	do\
-	  make -s -C $$i test ;\
-	done
-
+########################################
+DIRS_TEST=$(foreach dir,${DIRS}, ${dir}.test)
+%.test: %
+	+@MAKEFLAGS= ; make -j1 --no-print-directory --output-sync -C $^ test 2>&1
+test-all-nocolor: ${DIRS_TEST}
 test-all:
-	@make -s test-all-nocolor | grep --color -E '.*: [^0].*|$$'
+	@make -s test-all-nocolor -j8 | grep --color -E '.*: [^0].*|$$'
 
+########################################
+DIRS_CLEAN=$(foreach dir,${DIRS}, ${dir}.clean)
+%.clean: %
+	@cd $^ && make --no-print-directory clean
+clean-all: ${DIRS_CLEAN}
 
-compile-all:
-	@echo running $(words ${DIRS}) test-cases. '(zero means "OK")'
-	@for i in ${DIRS} ;\
-	do\
-          echo compiling $${i} ;\
-	  make -C $$i compile ;\
-	done
+########################################
+# disable builtin insanity to make `make -d` human-readable
+MAKEFLAGS += --no-builtin-rules
+.SUFFIXES:
