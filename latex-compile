@@ -30,7 +30,7 @@ def run_pdflatex():
         )
         return 
     except subprocess.CalledProcessError as e:
-        log=e.output.decode('ascii', errors='replace').splitlines()
+        log=e.output.decode('utf-8', errors='ignore').splitlines()
     
     acc=""
     prefix=None
@@ -317,7 +317,7 @@ def readfile(filename, splitlines=False):
         return None
 
     data = open(filename,"rb").read()
-    text = data.decode('ascii',errors='ignore')
+    text = data.decode('utf-8',errors='ignore')
 
     return text.splitlines() if splitlines else text
 
@@ -329,7 +329,7 @@ def readfile(filename, splitlines=False):
 onchange=dict()
 
 def snapshot():
-    """Return a dict where keys are names of 'relevant' files, and values are asciified contents of these files (or None if file does not exist)"""
+    """Return a dict mapping some file names to their contents (or None for non-existent files)"""
 
     global onchange
     if not onchange:
@@ -378,11 +378,11 @@ def changedfiles(oldsnapshot, newsnapshot):
 
 def run_commmand(commandline):
     try:
-        output=subprocess.check_output(commandline,shell=True).decode('ascii')
+        output=subprocess.check_output(commandline,shell=True).decode('utf-8', errors='ignore')
         return output
     except subprocess.CalledProcessError as e:
         print()
-        print(e.output.decode('ascii').strip())
+        print(e.output.decode('utf-8', errors='ignore').strip())
         raise RunCommandError
 
 #####################################################################
@@ -443,8 +443,8 @@ def selfupdate():
     except urllib.error.URLError as error:
         print("Network error:",error)
         return
-    old_ver = subprocess.check_output(["python3",sys.argv[0]         ,"--version"]).decode('ascii').rstrip().split()[1]
-    new_ver = subprocess.check_output(["python3","/tmp/latex-compile","--version"]).decode('ascii').rstrip().split()[1]
+    old_ver = run_commmand("python3 "   +sys.argv[0]+" --version").rstrip().split()[1]
+    new_ver = run_commmand("python3 /tmp/latex-compile --version").rstrip().split()[1]
 
     if old_ver == new_ver:
         print("Already up to date: "+old_ver)
@@ -464,7 +464,7 @@ if __name__ == '__main__':
     # option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--version', help='print version information and exit',action="version",
-                           version='%(prog)s 2020-10-28')
+                           version='%(prog)s 2020-11-23')
     argparser.add_argument('-l','--loop', help='interactive mode: loop forever, recompile when needed',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('--engine',help='compile with this program instead of pdflatex',default="pdflatex")
