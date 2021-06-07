@@ -17,6 +17,8 @@ suffixes=['aux', 'bcf', 'bbl', 'blg', 'brf', 'dvi', 'fls',
           'toc', 'vrb',
           'glg','glo','gls','ist',# glossaries.sty
           'ilg','ind','xdy',#xindy
+          'loc','soc', #changes.sty
+          'auxlock',# tikz w/ externalize
           ]
 
 def do_clean():
@@ -40,7 +42,6 @@ def do_clean():
                 
             os.rmdir('_minted-'+document)
         
-    
         for slide in range(0,50):
             try_remove(document+'.'+str(slide)+'.vrb')
     
@@ -77,7 +78,16 @@ def do_clean():
             try_remove(filename)
             try_remove(filename+'_t')
 
-    
+    # tikz externalization library
+    for filename in glob.glob('*-figure[0-9]*.pdf'):
+        base=filename[:-4]
+        if (os.path.exists(base+'.dpth') and
+            os.path.exists(base+'.log') and
+            os.path.exists(base+'.md5')):
+            try_remove(base+'.dpth')
+            try_remove(base+'.log')
+            try_remove(base+'.md5')
+            try_remove(base+'.pdf')
 
 if __name__ == '__main__':        
     argparser = argparse.ArgumentParser(description="delete all latex-related generated files")
