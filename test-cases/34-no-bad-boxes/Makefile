@@ -39,7 +39,7 @@ explain: transcript.txt
 	@echo "================ Test output ================"
 	@cat transcript.txt
 	@echo "================ Difference  ================"
-	@-diff -y ref/transcript.txt transcript.txt
+	@-diff --side-by-side --suppress-common-lines ref/transcript.txt transcript.txt ; true
 
 accept: transcript.txt
 	@rm -rf ref
