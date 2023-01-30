@@ -1,0 +1,23 @@
+\documentclass{article}
+
+\usepackage[utf8]{inputenc}
+
+\usepackage{silence}
+\WarningFilter{biblatex}{Using fall-back BibTeX}
+
+\usepackage[backend=bibtex,
+% sorting=none,
+]{biblatex}
+\bibliography{one}
+\bibliography{two}
+\bibliography{three}
+
+\begin{document}
+
+Note: this is basically the same test case as number 50, but in \texttt{--loop} mode
+
+\cite{prems,deuz,troiz}
+
+\printbibliography
+
+\end{document}
