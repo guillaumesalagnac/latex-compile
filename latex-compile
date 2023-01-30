@@ -353,7 +353,15 @@ def snapshot():
             # short-cut: let's skip absolute paths (probably files from tex distro)
             if filename[0] != '/':
                 snapshot[filename]=readfile(filename)
-        
+
+    import glob
+    for blg in glob.glob('*.blg'): # parse bibtex log to watch .bib files (#50, #58)
+        for line in readfile(blg,splitlines=True):
+            if 'Database' in line and '-blx' not in line:
+                filename = line[line.index(':')+2:]
+                snapshot[filename]=readfile(filename)
+
+    # print(dict_hexdigest(snapshot),file=sys.stderr)
     return snapshot
 
 def dict_hexdigest(some_dict, maxdigits=6):
@@ -464,7 +472,7 @@ if __name__ == '__main__':
     # option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--version', help='print version information and exit',action="version",
-                           version='%(prog)s 2021-06-07')
+                           version='%(prog)s 2023-01-30')
     argparser.add_argument('-l','--loop', help='interactive mode: loop forever, recompile when needed',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('--engine',help='compile with this program instead of pdflatex',default="pdflatex")
