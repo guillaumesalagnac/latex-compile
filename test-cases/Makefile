@@ -11,10 +11,10 @@ help:
 ########################################
 DIRS_TEST=$(foreach dir,${DIRS}, ${dir}.test)
 %.test: %
-	+@MAKEFLAGS= ; make -j1 --no-print-directory --output-sync -C $^ test 2>&1
+	@make -s -C $^ test 2>&1
 test-all-nocolor: ${DIRS_TEST}
 test-all:
-	@make -s test-all-nocolor -j8 | grep --color -E '.*: [^0].*|$$'
+	@make -s test-all-nocolor | grep --color -E '.*: [^0].*|$$'
 
 ########################################
 DIRS_CLEAN=$(foreach dir,${DIRS}, ${dir}.clean)
