@@ -16,6 +16,11 @@ transcript.txt:
 	@cat doc.in.tex | sed 's/.*key2.*/\\cite{key2}/' > doc.tex
 	-@latex-compile doc.tex >> transcript.txt ; true 
 	@echo test: counting lines in the .bbl':' $$(cat doc.bbl | wc -l)>> transcript.txt
+	@python3 -c 'print(10*"-")' >> transcript.txt
+	@echo test: rebuilding document with second citation removed again >> transcript.txt
+	@cat doc.in.tex | sed 's/.*key2.*//' > doc.tex
+	-@latex-compile doc.tex >> transcript.txt ; true
+	@echo test: counting lines in the .bbl':' $$(cat doc.bbl | wc -l)>> transcript.txt
 
 test: clean diff
 
