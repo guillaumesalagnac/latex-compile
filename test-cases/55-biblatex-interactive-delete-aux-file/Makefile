@@ -14,6 +14,7 @@ transcript.txt:clean
 	-@latex-compile doc.tex >> transcript.txt
 	@echo ---------- >> transcript.txt
 	@echo test: deleting '.aux' file >> transcript.txt
+	@rm doc.aux
 	-@latex-compile doc.tex >> transcript.txt
 	@echo test: did latex-compile run correctly or did it crash  ? >> transcript.txt
 
