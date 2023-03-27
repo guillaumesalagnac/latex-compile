@@ -15,11 +15,12 @@ export PIDEE=$!
 sleep 5 # wait enough time for the latex-compile snapshotter to perceive the change
 
 echo 'test: ----------' >> transcript.txt
-echo 'test: changing .bib file: should trigger a full recompilation: latex+bibtex+latex' >> transcript.txt
+echo 'test: changing one of the .bib files: should trigger a full recompilation: latex+bibtex+latex' >> transcript.txt
 cat two.v2.bib > two.bib
 
 sleep 5
 
+echo 'test: ----------' >> transcript.txt
 echo 'test: did latex-compile correctly rerun bibtex+latex ?'>> transcript.txt
 
 echo 'test: killing latex-compile background process'>> transcript.txt
