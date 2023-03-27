@@ -18,7 +18,9 @@ transcript.txt:clean
 	@echo test: adding second entry to .bib database >> transcript.txt ; true
 	@cat doc.2.bib >> doc.bib 
 	-@latex-compile doc.tex >> transcript.txt ; true # this should call bibtex *and then recompile* (if it doesn't,then this is a bug)
-	@echo test: did latex-compile correctly rerun bibtex ? >> transcript.txt
+	@echo ---------- >> transcript.txt
+	@echo test: did we correctly run bibtex again ? >> transcript.txt
+	@echo test: did we also recompile the latex afterwards ? >> transcript.txt
 
 
 accept learn diff explain: transcript.txt
