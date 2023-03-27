@@ -17,10 +17,6 @@ doc.toc
 doc.out
 doc.vrb
 
-# in test-cases #22 and #40, doc.tex itself is also a generated file
-22-bibtex-moving-target/doc.tex
-40-bibtex-moving-target-remove-citation/doc.tex
-
 # ignore glossaries.sty aux files
 doc.glg
 doc.glo
