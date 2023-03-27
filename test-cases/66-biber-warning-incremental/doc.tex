@@ -1,0 +1,15 @@
+\documentclass{article}
+\usepackage[backend=biber]{biblatex}
+\addbibresource{doc.bib}
+
+\begin{document}
+
+\nocite{*}
+
+This document has a faulty bibtex entry (no booktitle), which generates a bibtex warning.
+
+To ensure that the warning is actually noticed, we should display it on every latex-compile invocation.
+
+\printbibliography
+
+\end{document}

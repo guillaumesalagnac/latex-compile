@@ -1,0 +1,17 @@
+\documentclass{article}
+
+\usepackage[backend=biber]{biblatex}
+\bibliography{doc}
+
+\begin{document}
+
+This  test-case  exercises incremental  build:  on  first run,  biber
+returns an  error, but does create  an empty .bbl file.  On subsequent
+runs, \texttt{biber} should be invoked  again, hoping that the problem
+was fixed.
+
+\nocite{*}
+
+\printbibliography
+
+\end{document}
