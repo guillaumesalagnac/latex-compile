@@ -1,0 +1,52 @@
+\documentclass{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+\usepackage{glossaries}
+
+\makeglossaries
+
+% Note: the "name" field in each entry is needed to avoid this error:
+% Package glossaries Error: name key required in \newglossaryentry for entry
+
+\newglossaryentry{label-A}
+{
+  name={name A},
+  % quote from the "User Manual for glossaries.sty v4.52" chapter 9:
+  %
+  % As with labels in general, a ⟨glossary-label⟩ must not contain any active characters.
+    description={cf \gls{incorrect-label~}} %  non-breaking space  is an active char.
+}
+
+\newglossaryentry{label-B}
+{
+    name={name B},
+    description={cf \gls{label-A}}
+}
+
+\newglossaryentry{label-C}
+{
+    name={name C},
+    description={cf \gls{label-B}}
+}
+
+\newglossaryentry{label-D}
+{
+    name={name D},
+    description={cf \gls{label-C}}
+}  
+
+
+
+\begin{document}
+
+% \gls{label-A} % triggers an error on first pass
+% \gls{label-B} %    ...    2nd pass 
+% \gls{label-C} %    ...
+\gls{label-D} % triggers an error on 4th pass
+
+\printglossaries
+
+
+\end{document}
