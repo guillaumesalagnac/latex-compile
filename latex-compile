@@ -83,7 +83,7 @@ class Bibtex(HelperTool):
         if os.path.isfile(jobname+'.bcf'): return # use biber, not bibtex
         self.citations_before = [ line[10:-1]
                                   for line in readfile(jobname+'.aux',True)
-                                  if l[:10] == r'\citation{' ]
+                                  if line[:10] == r'\citation{' ]
 
     def after_first_pass(self):
         if os.path.isfile(jobname+'.bcf'): return # use biber, not bibtex
@@ -496,7 +496,7 @@ if __name__ == '__main__':
     # Command-line option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-v','--version', help='print version information and exit', action="version",
-                           version='%(prog)s 2023-03-27')
+                           version='%(prog)s 2023-04-03')
     argparser.add_argument('-l','--loop', help='interactive mode: loop forever, recompile when needed',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('--engine',help='compile with this program instead of pdflatex',default="pdflatex")
