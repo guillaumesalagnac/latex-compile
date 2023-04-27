@@ -24,6 +24,16 @@ suffixes=['aux', 'bcf', 'bbl', 'blg', 'brf', 'dvi', 'fls',
 def do_clean():
     for document in glob.glob("*.tex"):
         document=document.replace('.tex','')
+
+        # .fls = `pdflatex -recorder` file list
+        if os.path.exists(document+'.fls'):
+            for line in open(document+'.fls',"r").readlines():
+                if document+'.pdf' in line and options.keep_pdf:
+                    continue
+                if line[:6] == 'OUTPUT':
+                    try_remove(line[7:-1])
+                    
+        # well-known auxiliary files
         for filename in [ document+'.'+suffix for suffix in suffixes ]:
             try_remove(filename)
             
