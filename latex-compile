@@ -137,6 +137,12 @@ class Biber(HelperTool):
                   for line in readfile(jobname+'.blg',True)
                   if 'Found BibTeX data source' in line ]
 
+    def before_first_pass(self):
+        bcf=readfile(jobname+'.bcf',True)
+        if bcf and bcf[-1] != '</bcf:controlfile>':
+            print(f'latex-compile: biber control file {jobname}.bcf is malformed, deleting {jobname}.bbl')
+            os.remove(jobname+'.bbl')
+
     def after_first_pass(self):
         if not os.path.isfile(jobname+'.bcf'): return  # use bibtex, not biber
         
@@ -164,9 +170,21 @@ class Biber(HelperTool):
 
         if biber_needed:
             print("running biber on "+jobname+"...")
-            biber_output = run_command("biber "+jobname) # will print errors if any
+            try:
+                biber_output = run_command("biber "+jobname,quiet=True)
+            except CalledProcessError as e:
+                bibfile=None
+                for line in e.output.splitlines():
+                    if line.startswith('INFO - Found BibTeX data source'):
+                        bibfile=line[1+line.index("'"):-1]
+                    if line.startswith('ERROR - BibTeX subsystem:'):
+                        message=line[1+line.index(","):]
+                        print(bibfile+':'+message)
+                raise
             if "INFO - WARNINGS:" in biber_output:
-                print(biber_output)
+                for line in biber_output.splitlines():
+                    if line.startswith('WARN - '):
+                        print('biber warning:',line[7:])
 
 class MakeGlossaries(HelperTool):
     def files_to_watch(self):
@@ -442,6 +460,8 @@ def latex_full_build():
         before=snapshot()
         for tool in helper_tools:
             tool.before_later_pass()
+        # print('before: ',dict_hexdigest(before))
+        # print('after : ',dict_hexdigest(after))
 
         print('recompiling %s...' % (jobname+'.tex'))
         try:
@@ -496,7 +516,7 @@ if __name__ == '__main__':
     # Command-line option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-v','--version', help='print version information and exit', action="version",
-                           version='%(prog)s 2023-04-03')
+                           version='%(prog)s 2023-07-12')
     argparser.add_argument('-l','--loop', help='interactive mode: loop forever, recompile when needed',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('--engine',help='compile with this program instead of pdflatex',default="pdflatex")
