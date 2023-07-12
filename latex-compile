@@ -183,7 +183,9 @@ class Biber(HelperTool):
                 raise
             if "INFO - WARNINGS:" in biber_output:
                 for line in biber_output.splitlines():
-                    if line.startswith('WARN - '):
+                    if line.startswith('WARN - BibTeX subsystem:'):
+                        print('biber warning:'+line[1+line.index(","):])
+                    elif line.startswith('WARN - '):
                         print('biber warning:',line[7:])
 
 class MakeGlossaries(HelperTool):
