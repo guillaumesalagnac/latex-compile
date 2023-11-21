@@ -184,7 +184,18 @@ class Biber(HelperTool):
             if "INFO - WARNINGS:" in biber_output:
                 for line in biber_output.splitlines():
                     if line.startswith('WARN - BibTeX subsystem:'):
-                        print('biber warning:'+line[1+line.index(","):])
+                        should_print_this_warning = True
+                        if "possible runaway string started at line" in line:
+                            # workaround for https://github.com/plk/biber/issues/456
+                            re_possible_runaway_string_trigger = re.compile(r' *[a-zA-z-]+ * =.*')
+                            linenum = int(line.split(",")[1].strip().split(" ")[1].strip())
+                            for name in self.files_to_watch():
+                                contents=["dummy line zero"]+readfile(name,splitlines=True)
+                                if (linenum < len(contents)
+                                    and re_possible_runaway_string_trigger.match(contents[linenum])):
+                                    should_print_this_warning = False
+                        if should_print_this_warning:
+                            print('biber warning:'+line[1+line.index(","):])
                     elif line.startswith('WARN - '):
                         print('biber warning:',line[7:])
 
@@ -518,7 +529,7 @@ if __name__ == '__main__':
     # Command-line option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-v','--version', help='print version information and exit', action="version",
-                           version='%(prog)s 2023-07-12')
+                           version='%(prog)s 2023-11-21')
     argparser.add_argument('-l','--loop', help='interactive mode: loop forever, recompile when needed',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('--engine',help='compile with this program instead of pdflatex',default="pdflatex")
