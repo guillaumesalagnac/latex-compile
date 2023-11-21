@@ -185,7 +185,7 @@ class Biber(HelperTool):
                 for line in biber_output.splitlines():
                     if line.startswith('WARN - BibTeX subsystem:'):
                         should_print_this_warning = True
-                        if "possible runaway string started at line" in line:
+                        if "possible runaway string started at line" in line: # cf test-case #69
                             # workaround for https://github.com/plk/biber/issues/456
                             re_possible_runaway_string_trigger = re.compile(r' *[a-zA-z-]+ * =.*')
                             linenum = int(line.split(",")[1].strip().split(" ")[1].strip())
