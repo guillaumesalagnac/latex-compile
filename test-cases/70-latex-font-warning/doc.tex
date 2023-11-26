@@ -1,0 +1,38 @@
+\documentclass{article}
+
+\usepackage{lmodern}
+
+\begin{document}
+
+% https://tex.stackexchange.com/a/534610
+
+
+\setlength{\parindent}{0pt}
+\obeylines
+
+Some font combinations are not available in latin modern:
+\bigskip
+
+\verb`\textbf =` \textbf{bold = \fontname\font}
+\verb`\textsc =` \textsc{caps = \fontname\font}
+\verb`\texttt =` \texttt{ttype = \fontname\font}
+
+\bigskip
+\verb`\textbf =` \textbf{bold = \fontname\font}
+\verb`\textbf\textsc =` \textbf{\textsc{bold caps = \fontname\font}} (nope)
+\verb`\textbf\texttt =` \textbf{\texttt{bold ttype = \fontname\font}}
+\verb`\textbf\textsc\texttt =` \textbf{\textsc{\texttt{full = \fontname\font}}} (nope)
+
+\bigskip
+\verb`\textsc =` \textsc{caps = \fontname\font}
+\verb`\textsc\textbf =` \textsc{\textbf{bold caps = \fontname\font}}
+\verb`\textsc\texttt =` \textsc{\texttt{caps ttype = \fontname\font}}
+\verb`\textsc\textbf\texttt =` \textsc{\textbf{\texttt{full = \fontname\font}}} (nope)
+
+\bigskip
+\verb`\texttt =` \texttt{ttype = \fontname\font}
+\verb`\texttt\textbf =` \texttt{\textbf{bold ttype = \fontname\font}}
+\verb`\texttt\textsc =` \texttt{\textsc{caps ttype = \fontname\font}}
+\verb`\texttt\textbf\textsc =` \texttt{\textbf{\textsc{full = \fontname\font}}} (nope)
+
+\end{document}
