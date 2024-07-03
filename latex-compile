@@ -363,7 +363,7 @@ def pretty_print_warnings():
 # keep track of current document page and current source file so that
 # warnings and errors are reported with more meaningful info
 
-re_page = re.compile("\[(?P<num>[0-9]+)(?:$|[^/0-9])")
+re_page = re.compile(r'\[(?P<num>[0-9]+)(?:$|[^/0-9])')
 
 class Tracker():
     def __init__(self):
@@ -533,7 +533,7 @@ if __name__ == '__main__':
     # Command-line option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-v','--version', help='print version information and exit', action="version",
-                           version='%(prog)s 2023-11-26')
+                           version='%(prog)s 2024-07-03')
     argparser.add_argument('-l','--loop', help='interactive mode: loop forever, recompile when needed',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('--engine',help='compile with this program instead of pdflatex',default="pdflatex")
