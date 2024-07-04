@@ -512,8 +512,8 @@ def selfupdate():
     except urllib.error.URLError as error:
         print("Network error:",error)
         return
-    old_ver = run_commmand("python3 "   +sys.argv[0]+" --version").rstrip().split()[1]
-    new_ver = run_commmand("python3 /tmp/latex-compile --version").rstrip().split()[1]
+    old_ver = run_command("python3 "   +sys.argv[0]+" --version").rstrip().split()[1]
+    new_ver = run_command("python3 /tmp/latex-compile --version").rstrip().split()[1]
 
     if old_ver == new_ver:
         print("Already up to date: "+old_ver)
@@ -533,7 +533,7 @@ if __name__ == '__main__':
     # Command-line option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-v','--version', help='print version information and exit', action="version",
-                           version='%(prog)s 2024-07-03')
+                           version='%(prog)s 2024-07-04')
     argparser.add_argument('-l','--loop', help='interactive mode: loop forever, recompile when needed',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('--engine',help='compile with this program instead of pdflatex',default="pdflatex")
