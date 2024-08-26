@@ -55,6 +55,10 @@ def snapshot():
             if filename[0] == '/':   continue # skip absolute paths (probably from tex distro)
             if filename[:2] == './': filename=filename[2:] # uniquify 'job.aux' and './job.aux'
             if filename[-8:] == '.run.xml': continue # hack for reducing time to fixpoint
+            if filename in res: # repeated reads are slow and useless
+            # (this happens a lot when using e.g. includepdf)
+                continue
+
             res[filename]=readfile(filename)
     return res
 
