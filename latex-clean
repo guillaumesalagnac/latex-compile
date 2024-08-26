@@ -19,6 +19,8 @@ suffixes=['aux', 'bcf', 'bbl', 'blg', 'brf', 'dvi', 'fls',
           'ilg','ind','xdy',#xindy
           'loc','soc', #changes.sty
           'auxlock',# tikz w/ externalize
+          'tdo', #todonotes.sty
+          'listing', #tcolorbox's tcblisting
           ]
 
 def do_clean():
