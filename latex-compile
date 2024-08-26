@@ -18,7 +18,7 @@ def run_command(commandline, quiet=False):
         return output
     except CalledProcessError as e:
         e.output = e.output.decode('utf-8', errors='ignore').strip()
-        if not quiet:
+        if e.returncode == 127 or not quiet : # always show 'command not found' errors !
             print(e.output)
         raise
 
