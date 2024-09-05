@@ -530,7 +530,8 @@ def selfupdate():
         print("Already up to date: "+old_ver)
         return
     if old_ver < new_ver:
-        os.replace("/tmp/latex-compile", sys.argv[0])
+        import shutil
+        shutil.move("/tmp/latex-compile", sys.argv[0])
         os.chmod(sys.argv[0], 0o755)
         print("Updated to newer version: "+old_ver+" -> "+new_ver)
         return
@@ -544,7 +545,7 @@ if __name__ == '__main__':
     # Command-line option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-v','--version', help='print version information and exit', action="version",
-                           version='%(prog)s 2024-08-26')
+                           version='%(prog)s 2024-09-05')
     argparser.add_argument('-l','--loop', help='interactive mode: loop forever, recompile when needed',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('--engine',help='compile with this program instead of pdflatex',default="pdflatex")
