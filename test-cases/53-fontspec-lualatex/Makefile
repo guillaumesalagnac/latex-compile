@@ -3,7 +3,7 @@ default: test
 compile: transcript.txt
 
 transcript.txt:
-	@latex-compile --engine=lualatex doc.tex > $@
+	@-latex-compile --engine=lualatex doc.tex > $@
 
 test: clean diff
 
