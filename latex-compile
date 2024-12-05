@@ -363,7 +363,7 @@ def pretty_print_warnings():
             if ' Unused global option(s):' in line:
                 prefix="    " # offending options on next logline, cf #46
 
-        elif line.startswith('pdfTeX warning:'): # cf #36, #48
+        elif line.startswith('pdfTeX warning'): # cf #36, #48, #75
             tracker.pprint(line) # pdfTeX warnings are always single-line
 
         elif line.startswith('LaTeX Font Warning:'):
@@ -551,7 +551,7 @@ if __name__ == '__main__':
     # Command-line option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-v','--version', help='print version information and exit', action="version",
-                           version='%(prog)s 2024-10-30')
+                           version='%(prog)s 2024-12-05')
     argparser.add_argument('-l','--loop', help='interactive mode: loop forever, recompile when needed',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('--engine',help='compile with this program instead of pdflatex',default="pdflatex")
