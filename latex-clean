@@ -16,6 +16,7 @@ suffixes=['aux', 'bcf', 'bbl', 'blg', 'brf', 'dvi', 'fls',
           'synctex.gz', 'synctex(busy)', 'tex~', 'bib~', 'snm',
           'toc', 'vrb',
           'glg','glo','gls','ist',# glossaries.sty
+          'glo-abr','gls-abr',# glossaries-extra.sty abreviations
           'ilg','ind','xdy',#xindy
           'loc','soc', #changes.sty
           'auxlock',# tikz w/ externalize
