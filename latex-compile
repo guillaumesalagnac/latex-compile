@@ -476,7 +476,8 @@ def latex_full_build():
     for tool in helper_tools:
         tool.before_first_pass()
     
-    print('compiling %s...' % (jobname+'.tex'))
+    print('compiling %s...' % (jobname+'.tex'),end='')
+    sys.stdout.flush() # progress bar: show start
     try:
         run_command(options.engine+' '+
                      '-halt-on-error '+
@@ -486,7 +487,9 @@ def latex_full_build():
                      '-shell-escape '+
                      '-interaction=nonstopmode '+
                      jobname,quiet=True)
+        print() # progress bar: show end
     except CalledProcessError as e:
+        print() # progress bar: show end
         pretty_print_errors()
         raise
     for tool in helper_tools:
@@ -503,7 +506,8 @@ def latex_full_build():
         # print('before: ',dict_hexdigest(before))
         # print('after : ',dict_hexdigest(after))
 
-        print('recompiling %s...' % (jobname+'.tex'))
+        print('recompiling %s...' % (jobname+'.tex'),end='')
+        sys.stdout.flush() # progress bar: show start
         try:
             run_command(options.engine+' '+
                          '-halt-on-error '+
@@ -513,7 +517,9 @@ def latex_full_build():
                          '-shell-escape '+
                          '-interaction=nonstopmode '+
                          jobname,quiet=True)
+            print() # progress bar: show end
         except CalledProcessError as e:
+            print() # progress bar: show end
             # errors *may* only appear after a later pass, cf #41
             pretty_print_errors()
             raise
