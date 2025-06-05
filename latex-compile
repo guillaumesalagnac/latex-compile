@@ -430,7 +430,8 @@ class Tracker():
                 except: # this is a workaround for #51
                     pass
 
-            if line[0] == '(':
+            if ( line[0] == '('
+                 and len(line)>1): # GS-2025-06-05 as per user request
                 suffix=line[1:]
 
                 # if suffix does not even look like a pathname, let's not bother walking it
@@ -556,7 +557,7 @@ if __name__ == '__main__':
     # Command-line option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-v','--version', help='print version information and exit', action="version",
-                           version='%(prog)s 2025-02-07')
+                           version='%(prog)s 2025-06-05')
     argparser.add_argument('-l','--loop', help='interactive mode: loop forever, recompile when needed',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('--engine',help='compile with this program instead of pdflatex',default="pdflatex")
