@@ -24,11 +24,12 @@ def run_command(commandline, quiet=False):
 
 def readfile(filename, splitlines=False):
     """read a file and return its contents as a string or a list of strings"""
-    if not os.path.isfile(filename):
+    try:
+        data = open(filename,"rb").read()
+        text = data.decode('utf-8',errors='ignore')
+        return text.splitlines() if splitlines else text
+    except FileNotFoundError:
         return [] if splitlines else None
-    data = open(filename,"rb").read()
-    text = data.decode('utf-8',errors='ignore')
-    return text.splitlines() if splitlines else text
 
 def dict_hexdigest(some_dict, maxdigits=6):
     # utility function, to help debugging fixpoint stuff
@@ -563,7 +564,7 @@ if __name__ == '__main__':
     # Command-line option parsing
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-v','--version', help='print version information and exit', action="version",
-                           version='%(prog)s 2025-06-05')
+                           version='%(prog)s 2025-09-08')
     argparser.add_argument('-l','--loop', help='interactive mode: loop forever, recompile when needed',action="store_true")
     argparser.add_argument('-b','--nobadboxes', help='ignore warnings about overfull and underfull boxes', action="store_true")
     argparser.add_argument('--engine',help='compile with this program instead of pdflatex',default="pdflatex")
