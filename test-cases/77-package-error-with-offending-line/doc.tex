@@ -1,0 +1,37 @@
+\documentclass{article}
+
+\usepackage{tcolorbox} % loads tikz and xcolor
+\tcbuselibrary{listings}
+
+\newtcblisting{mybox}[1][]{
+  coltext=dummy,
+} 
+
+\begin{document}
+
+\begin{mybox}
+  lorem ipsum
+\end{mybox}
+
+\end{document}
+
+
+After: latex-compile correctly filters out TeX's memory statistics.
+
+        if prefix is not None: # iff we are dealing with a package error
+            # similarly: discard long-error fragments when already joined
+            if prefix in detail and detail[ len(prefix):].strip() in line:
+                continue # cf #77
+            # and discard generic RTFM advice
+            if detail == "See the "+prefix[1:-1]+" package documentation for explanation.":
+                continue
+
+Before: latex-compile gets confused and dumps useless noise
+                
+        if prefix is not None: # iff we are dealing with a package error
+            # similarly: discard long-error fragments when already joined
+            if detail[ len(prefix):].strip() in line:
+                continue
+            # and discard generic RTFM advice
+            if detail == "See the "+prefix[1:-1]+" package documentation for explanation.":
+                continue

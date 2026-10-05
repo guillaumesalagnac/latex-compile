@@ -312,8 +312,8 @@ def pretty_print_errors():
             continue
         if prefix is not None: # iff we are dealing with a package error
             # similarly: discard long-error fragments when already joined
-            if detail[ len(prefix):].strip() in line:
-                continue
+            if prefix in detail and detail[ len(prefix):].strip() in line:
+                continue # cf #77
             # and discard generic RTFM advice
             if detail == "See the "+prefix[1:-1]+" package documentation for explanation.":
                 continue
